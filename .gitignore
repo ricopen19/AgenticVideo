@@ -1,0 +1,23 @@
+node_modules/
+
+# Claude / agent personal settings
+.claude/
+.agent/
+.agents/
+.scripts/
+skills-lock.json
+
+# Docs (personal notes)
+docs/
+
+# Generated output
+out/
+*.mp4
+*.mp3
+
+# Personal content screenshots
+remotion-voicevox/public/content/
+
+# OS
+.DS_Store
+Thumbs.db

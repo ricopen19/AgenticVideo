@@ -1,0 +1,403 @@
+import { CharacterId } from "../config";
+
+// アニメーションの型定義
+export type AnimationType = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomIn" | "bounce";
+
+// ビジュアルの型定義
+export interface VisualContent {
+  type: "image" | "text" | "math-step" | "none";
+  src?: string;
+  text?: string;
+  fontSize?: number;
+  color?: string;
+  animation?: AnimationType;
+  // math-step専用
+  stepNum?: number;
+  stepColor?: string;
+  formula?: string;
+  hint?: string;
+}
+
+// 効果音の型定義
+export interface SoundEffect {
+  src: string;
+  volume?: number;
+}
+
+// BGM設定
+export interface BGMConfig {
+  src: string;
+  volume?: number;
+  loop?: boolean;
+}
+
+// BGM設定（動画全体で使用）
+export const bgmConfig: BGMConfig | null = null;
+
+// セリフデータの型定義
+export interface ScriptLine {
+  id: number;
+  character: CharacterId;
+  text: string;
+  displayText?: string;
+  scene: number;
+  voiceFile: string;
+  durationInFrames: number;
+  pauseAfter: number;
+  emotion?: "normal" | "happy" | "surprised" | "thinking" | "sad";
+  visual?: VisualContent;
+  se?: SoundEffect;
+}
+
+// シーン定義
+export interface SceneInfo {
+  id: number;
+  title: string;
+  background: string;
+}
+
+export const scenes: SceneInfo[] = [
+  { id: 1, title: "オープニング", background: "gradient" },
+  { id: 2, title: "メインコンテンツ", background: "solid" },
+  { id: 3, title: "エンディング", background: "gradient" },
+];
+
+// このファイルは config/script.yaml から自動生成されます
+// 編集する場合は config/script.yaml を編集して npm run sync-script を実行してください
+export const scriptData: ScriptLine[] = [
+  {
+    "id": 1,
+    "character": "metan",
+    "text": "あら、ずんだもん。この不等式の問題で止まっているようね。どこが難しそうかしら？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "voiceFile": "01_metan.wav",
+    "durationInFrames": 193
+  },
+  {
+    "id": 2,
+    "character": "zundamon",
+    "text": "めたん先生、この $x + a < 3x - 2 < -x + 10$ ってやつなのだ。式が繋がっているし、おまけに文字の $a$ まで入っていて、何から手を付ければいいかさっぱりなのだ。",
+    "displayText": "この連立不等式、文字 a まで入っていて\n何から手を付ければいいかさっぱりなのだ。",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$x + a < 3x - 2 < -x + 10$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "02_zundamon.wav",
+    "durationInFrames": 627
+  },
+  {
+    "id": 3,
+    "character": "metan",
+    "text": "そうね。でも、大きな塊は分けて考えるのが鉄則よ。この「繋がった不等式」は、どういう意味だったかしら？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$x + a < 3x - 2 < -x + 10$",
+      "fontSize": 64,
+      "animation": "none"
+    },
+    "voiceFile": "03_metan.wav",
+    "durationInFrames": 280
+  },
+  {
+    "id": 4,
+    "character": "zundamon",
+    "text": "えーっと……左側と右側が両方成り立つってことなのだ？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$x + a < 3x - 2 < -x + 10$",
+      "fontSize": 64,
+      "animation": "none"
+    },
+    "voiceFile": "04_zundamon.wav",
+    "durationInFrames": 152
+  },
+  {
+    "id": 5,
+    "character": "metan",
+    "text": "その通りよ。まずは、それぞれを整理してみましょう。特に $a$ が入っていない方は、すぐに解けそうじゃない？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$x + a < 3x - 2 < -x + 10$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "05_metan.wav",
+    "durationInFrames": 264
+  },
+  {
+    "id": 6,
+    "character": "zundamon",
+    "text": "やってみるのだ！ 右側の $3x - 2 < -x + 10$ を解くと…… $x < 3$ になったのだ。",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$3x - 2 < -x + 10$\n$$4x < 12$$\n$$x < 3$$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "06_zundamon.wav",
+    "durationInFrames": 355
+  },
+  {
+    "id": 7,
+    "character": "metan",
+    "text": "正解よ。じゃあ、左側の $x + a < 3x - 2$ も、$x$ について解いてみて。",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$3x - 2 < -x + 10$\n$$4x < 12$$\n$$x < 3$$",
+      "fontSize": 64,
+      "animation": "none"
+    },
+    "voiceFile": "07_metan.wav",
+    "durationInFrames": 327
+  },
+  {
+    "id": 8,
+    "character": "zundamon",
+    "text": "うう、文字があるけど頑張るのだ。両辺を $-2$ で割るから、不等号の向きが逆転して…… $x > \\frac{a+2}{2}$ なのだ！",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$-2x < -a - 2$$\n\n$$x > \\frac{a+2}{2}$$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "08_zundamon.wav",
+    "durationInFrames": 405
+  },
+  {
+    "id": 9,
+    "character": "metan",
+    "text": "いいわね。これで、条件を整理するとこうなるわ。",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$-2x < -a - 2$$\n\n$$x > \\frac{a+2}{2}$$",
+      "fontSize": 64,
+      "animation": "none"
+    },
+    "voiceFile": "09_metan.wav",
+    "durationInFrames": 113
+  },
+  {
+    "id": 10,
+    "character": "metan",
+    "text": "この範囲に「整数 $x$ がちょうど5個」入ればいいの。さて、ずんだもん。数直線をイメージして、$3$ より小さい整数を大きい順に5個書き出してみてくれる？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$\\frac{a+2}{2} < x < 3$$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "10_metan.wav",
+    "durationInFrames": 420
+  },
+  {
+    "id": 11,
+    "character": "zundamon",
+    "text": "$3$ は含まないから…… $2, 1, 0, -1, -2$ の5個なのだ！",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$\\frac{a+2}{2} < x < 3$$\n\n解に含まれる整数は\n$2, 1, 0, -1, -2$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "11_zundamon.wav",
+    "durationInFrames": 261
+  },
+  {
+    "id": 12,
+    "character": "metan",
+    "text": "そう。その5個が範囲に含まれて、次の $-3$ は含まれないようにすればいいのね。境界線の $\\frac{a+2}{2}$ は、数直線のどこにあればいいかしら？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$\\frac{a+2}{2} < x < 3$$\n\n解に含まれる整数は\n$2, 1, 0, -1, -2$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "12_metan.wav",
+    "durationInFrames": 422
+  },
+  {
+    "id": 13,
+    "character": "zundamon",
+    "text": "えーっと、$-2$ と $-3$ の間にあればいいのだ。……でも、どっちに「イコール」がつくのか分からなくなるのだ。",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "image",
+      "src": "CleanShot 2026-05-12 at 15.40.33@2x.png",
+      "animation": "fadeIn"
+    },
+    "voiceFile": "13_zundamon.wav",
+    "durationInFrames": 317
+  },
+  {
+    "id": 14,
+    "character": "metan",
+    "text": "そこが一番のポイントね。もし $\\frac{a+2}{2}$ がぴったり $-2$ だったら、不等式は $x > -2$ になるわね。そのとき、整数 $-2$ は範囲に含まれるかしら？",
+    "displayText": "境界がぴったり -2 だったら、x > -2 になるわね。\n整数 -2 は含まれるかしら？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "image",
+      "src": "CleanShot 2026-05-12 at 15.41.46@2x.png",
+      "animation": "fadeIn"
+    },
+    "voiceFile": "14_metan.wav",
+    "durationInFrames": 493
+  },
+  {
+    "id": 15,
+    "character": "zundamon",
+    "text": "含まれないのだ！ $x > -2$ だと、一番小さい整数は $-1$ になっちゃうのだ。それだと整数が4個しかないから、ダメなのだ。",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "image",
+      "src": "CleanShot 2026-05-12 at 15.41.46@2x.png",
+      "animation": "fadeIn"
+    },
+    "voiceFile": "15_zundamon.wav",
+    "durationInFrames": 378
+  },
+  {
+    "id": 16,
+    "character": "metan",
+    "text": "鋭いわね。じゃあ、$\\frac{a+2}{2}$ がぴったり $-3$ だったら？ $x > -3$ のとき、整数 $-2$ は含まれる？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "image",
+      "src": "CleanShot 2026-05-12 at 15.42.34@2x.png",
+      "animation": "fadeIn"
+    },
+    "voiceFile": "16_metan.wav",
+    "durationInFrames": 402
+  },
+  {
+    "id": 17,
+    "character": "zundamon",
+    "text": "含まれるのだ！ $x > -3$ なら、整数は $-2, -1, 0, 1, 2$ の5個でぴったりなのだ。……あ！ ということは、$\\frac{a+2}{2}$ は $-3$ になってもいいけど、$-2$ になっちゃダメってことなのだ？",
+    "displayText": "x > -3 なら整数5個でぴったりなのだ！\n境界は -3 はOKだけど -2 はダメってこと？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "image",
+      "src": "CleanShot 2026-05-12 at 15.42.34@2x.png",
+      "animation": "fadeIn"
+    },
+    "voiceFile": "17_zundamon.wav",
+    "durationInFrames": 716
+  },
+  {
+    "id": 18,
+    "character": "metan",
+    "text": "その通り。それを不等式で表すとどうなるかしら？",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "image",
+      "src": "CleanShot 2026-05-12 at 15.42.34@2x.png",
+      "animation": "fadeIn"
+    },
+    "voiceFile": "18_metan.wav",
+    "durationInFrames": 113
+  },
+  {
+    "id": 19,
+    "character": "zundamon",
+    "text": "こうなのだ！",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$-3 \\le \\frac{a+2}{2} < -2$$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "19_zundamon.wav",
+    "durationInFrames": 31
+  },
+  {
+    "id": 20,
+    "character": "metan",
+    "text": "完璧よ！ あとはこれを $a$ について解くだけね。",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$-3 \\le \\frac{a+2}{2} < -2$$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "20_metan.wav",
+    "durationInFrames": 129
+  },
+  {
+    "id": 21,
+    "character": "zundamon",
+    "text": "全部に $2$ をかけて……最後に $2$ を引いて……できたのだ！ めたん先生、僕にも解けたのだ！",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$-6 \\le a + 2 < -4$$\n$$-8 \\le a < -6$$",
+      "fontSize": 64,
+      "animation": "fadeIn"
+    },
+    "voiceFile": "21_zundamon.wav",
+    "durationInFrames": 289
+  },
+  {
+    "id": 22,
+    "character": "metan",
+    "text": "ふふ、よく頑張ったわね。数直線をかいて、境界線の値が含まれるかどうかを一つずつ確認するのが、ミスをしないコツよ。",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visual": {
+      "type": "text",
+      "text": "$$-6 \\le a + 2 < -4$$\n$$-8 \\le a < -6$$",
+      "fontSize": 64,
+      "animation": "slideLeft"
+    },
+    "voiceFile": "22_metan.wav",
+    "durationInFrames": 272
+  }
+];
+
+// VOICEVOXスクリプト生成用
+export const generateVoicevoxScript = (
+  data: ScriptLine[],
+  characterSpeakerMap: Record<CharacterId, number>
+) => {
+  return data.map((line) => ({
+    id: line.id,
+    character: line.character,
+    speakerId: characterSpeakerMap[line.character],
+    text: line.text,
+    outputFile: line.voiceFile,
+  }));
+};

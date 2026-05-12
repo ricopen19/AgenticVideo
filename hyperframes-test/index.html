@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0a0a0f;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      /* Scene 1: Title */
+      .s1-title {
+        font-size: 140px;
+        font-weight: 800;
+        letter-spacing: -4px;
+        background: linear-gradient(135deg, #fff 40%, #7c6fff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .s1-sub {
+        margin-top: 24px;
+        font-size: 36px;
+        color: #888;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+      }
+
+      /* Scene 2: Concept */
+      #s2 { background: #0d0d18; }
+      .concept-row {
+        display: flex;
+        align-items: center;
+        gap: 60px;
+      }
+      .concept-box {
+        padding: 40px 72px;
+        border-radius: 20px;
+        font-size: 52px;
+        font-weight: 700;
+      }
+      .box-html { background: #1e2a3a; color: #61b8ff; border: 2px solid #2a4060; }
+      .box-mp4  { background: #1e3a2a; color: #5fffa8; border: 2px solid #2a6040; }
+      .arrow { font-size: 80px; color: #555; }
+      .concept-caption {
+        margin-top: 60px;
+        font-size: 30px;
+        color: #666;
+        text-align: center;
+        line-height: 1.6;
+      }
+
+      /* Scene 3: Features */
+      .features-title {
+        font-size: 48px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 60px;
+        letter-spacing: -1px;
+      }
+      .features-grid { display: flex; gap: 48px; }
+      .feature-card {
+        width: 400px;
+        padding: 48px 40px;
+        border-radius: 20px;
+        background: #111118;
+        border: 1px solid #222;
+      }
+      .feature-icon { font-size: 56px; margin-bottom: 20px; }
+      .feature-name { font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+      .feature-desc { font-size: 22px; color: #777; line-height: 1.5; }
+
+      /* Scene 4: End */
+      .end-title { font-size: 80px; font-weight: 800; color: #fff; letter-spacing: -2px; }
+      .end-cmd {
+        margin-top: 40px;
+        padding: 24px 56px;
+        background: #111;
+        border: 1px solid #333;
+        border-radius: 12px;
+        font-family: monospace;
+        font-size: 36px;
+        color: #7c6fff;
+      }
+      .end-sub { margin-top: 36px; font-size: 28px; color: #555; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Scene 1: Title (0–5s) -->
+      <div id="s1" class="scene clip" data-start="0" data-duration="5" data-track-index="1">
+        <div class="s1-title">HyperFrames</div>
+        <div class="s1-sub">by HeyGen</div>
+      </div>
+
+      <!-- Scene 2: Concept (5–10s) -->
+      <div id="s2" class="scene clip" data-start="5" data-duration="5" data-track-index="1">
+        <div class="concept-row">
+          <div class="concept-box box-html">HTML</div>
+          <div class="arrow">→</div>
+          <div class="concept-box box-mp4">MP4</div>
+        </div>
+        <div class="concept-caption">
+          Write HTML with timing attributes.<br>HyperFrames renders it to video via Puppeteer + FFmpeg.
+        </div>
+      </div>
+
+      <!-- Scene 3: Features (10–16s) -->
+      <div id="s3" class="scene clip" data-start="10" data-duration="6" data-track-index="1">
+        <div class="features-title">Agent-Native. No React. No JSX.</div>
+        <div class="features-grid">
+          <div class="feature-card" id="fc1">
+            <div class="feature-icon">🤖</div>
+            <div class="feature-name">Agent-Native</div>
+            <div class="feature-desc">AI writes HTML directly. No new DSL to learn.</div>
+          </div>
+          <div class="feature-card" id="fc2">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-name">Deterministic</div>
+            <div class="feature-desc">Same HTML → same MP4. Runs in CI at any scale.</div>
+          </div>
+          <div class="feature-card" id="fc3">
+            <div class="feature-icon">🎨</div>
+            <div class="feature-name">Full Stack</div>
+            <div class="feature-desc">GSAP, Lottie, Three.js, captions, TTS — all included.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scene 4: End (16–20s) -->
+      <div id="s4" class="scene clip" data-start="16" data-duration="4" data-track-index="1">
+        <div class="end-title">Try it now</div>
+        <div class="end-cmd">npx skills add heygen-com/hyperframes</div>
+        <div class="end-sub">Apache 2.0 · Open Source</div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene 1
+      tl.from(".s1-title", { y: 60, opacity: 0, duration: 0.8, ease: "power3.out" }, 0.2);
+      tl.from(".s1-sub",   { y: 30, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.6);
+      tl.to("#s1", { opacity: 0, duration: 0.4, ease: "power2.in" }, 4.4);
+
+      // Scene 2
+      tl.from(".box-html",        { x: -80, opacity: 0, duration: 0.6, ease: "power3.out" }, 5.3);
+      tl.from(".arrow",           { opacity: 0, duration: 0.4, ease: "power2.out" }, 5.8);
+      tl.from(".box-mp4",         { x: 80, opacity: 0, duration: 0.6, ease: "power3.out" }, 5.9);
+      tl.from(".concept-caption", { y: 30, opacity: 0, duration: 0.6, ease: "power3.out" }, 6.5);
+      tl.to("#s2", { opacity: 0, duration: 0.4, ease: "power2.in" }, 9.4);
+
+      // Scene 3
+      tl.from(".features-title", { y: 40, opacity: 0, duration: 0.6, ease: "power3.out" }, 10.3);
+      tl.from("#fc1", { y: 50, opacity: 0, duration: 0.5, ease: "power3.out" }, 10.7);
+      tl.from("#fc2", { y: 50, opacity: 0, duration: 0.5, ease: "power3.out" }, 10.95);
+      tl.from("#fc3", { y: 50, opacity: 0, duration: 0.5, ease: "power3.out" }, 11.2);
+      tl.to("#s3", { opacity: 0, duration: 0.4, ease: "power2.in" }, 15.4);
+
+      // Scene 4
+      tl.from(".end-title", { scale: 0.9, opacity: 0, duration: 0.6, ease: "power3.out" }, 16.3);
+      tl.from(".end-cmd",   { y: 30, opacity: 0, duration: 0.5, ease: "power3.out" }, 16.8);
+      tl.from(".end-sub",   { y: 20, opacity: 0, duration: 0.4, ease: "power3.out" }, 17.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1920px; height: 1080px; overflow: hidden;
+      background: #0d0d18;
+      font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+    }
+
+    /* ── Scenes ── */
+    .scene {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px; overflow: hidden;
+    }
+    #scene1 { z-index: 1; background: #0d0d18; }
+    #scene2 { z-index: 2; background: #0d0d18; opacity: 0; }
+    #scene3 { z-index: 3; background: #0d0d18; opacity: 0; }
+
+    /* ── Decoratives ── */
+    .ghost {
+      position: absolute; font-size: 380px; font-weight: 900;
+      color: rgba(152,152,224,0.04); user-select: none;
+      pointer-events: none; white-space: nowrap; line-height: 1;
+    }
+    .bg-glow {
+      position: absolute; border-radius: 50%; pointer-events: none;
+    }
+    .accent-rule {
+      position: absolute; left: 118px; top: 55px; bottom: 55px;
+      width: 3px; border-radius: 2px;
+      background: rgba(152,152,224,0.35); opacity: 0;
+    }
+
+    /* ── All content elements start hidden ── */
+    .prob-title, .divider-line, .case-lbl,
+    .step-row, .ans-section { opacity: 0; }
+
+    /* ── Typography ── */
+    .prob-title {
+      position: absolute; top: 52px; left: 160px; right: 80px;
+      font-size: 52px; font-weight: 700; color: #f0f0f0;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .prob-bracket { color: #aaaacc; }
+    .divider-line {
+      position: absolute; top: 148px; left: 160px; right: 80px;
+      height: 2px; background: rgba(255,255,255,0.14);
+      transform-origin: left center;
+    }
+    .case-lbl {
+      position: absolute; top: 166px; left: 160px; right: 80px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .case-num {
+      font-size: 36px; font-weight: 900; color: #f0f0f0; flex-shrink: 0;
+    }
+    .case-cond { font-size: 28px; color: #aaaacc; }
+
+    /* ── Step rows ── */
+    .step-row {
+      position: absolute; left: 160px; right: 80px;
+      display: flex; align-items: flex-start; gap: 28px;
+    }
+    .step-badge {
+      display: inline-block; padding: 9px 20px; border-radius: 8px;
+      font-size: 20px; font-weight: 900; letter-spacing: 0.06em;
+      flex-shrink: 0; margin-top: 8px; white-space: nowrap;
+    }
+    .s1 { background: #f4a0a0; color: #222; }
+    .s2 { background: #f0e070; color: #222; }
+    .s3 { background: #9898e0; color: #fff; }
+    .s4 { background: #90d090; color: #222; }
+
+    .step-content { flex: 1; font-size: 34px; }
+    .step-math    { color: #f0f0f0; line-height: 1.5; }
+    .step-hint    { font-size: 22px; color: #5b8fff; margin-top: 10px; opacity: 0; }
+    .step-hint::before { content: "← "; }
+
+    /* ── Final answer (scene 3) ── */
+    .ans-section {
+      position: absolute; top: 310px; left: 160px; right: 80px;
+      display: flex; align-items: flex-start; gap: 36px;
+    }
+    .ans-badge {
+      display: inline-block; background: #90d090; color: #222;
+      padding: 12px 26px; border-radius: 8px;
+      font-size: 26px; font-weight: 900; letter-spacing: 0.06em;
+      flex-shrink: 0; margin-top: 12px;
+    }
+    .ans-content  { flex: 1; font-size: 56px; }
+    .ans-math     { color: #f0f0f0; }
+    .ans-hint     { font-size: 28px; color: #5b8fff; margin-top: 18px; opacity: 0; }
+    .ans-hint::before { content: "← "; }
+
+    /* KaTeX inherits color */
+    .katex { color: inherit !important; }
+    .katex-display { margin: 0 !important; }
+  </style>
+</head>
+<body>
+<div id="root"
+     data-composition-id="math-video"
+     data-width="1920"
+     data-height="1080"
+     data-start="0"
+     data-duration="28.1">
+
+  <!-- ═══════════════════════════════════════
+       SCENE 1 : Title + Case (i)
+  ═══════════════════════════════════════ -->
+  <div id="scene1" class="scene">
+    <div class="ghost" style="top:-40px; left:1150px;">∣x∣</div>
+    <div class="bg-glow" style="
+      width:900px; height:900px; top:90px; left:510px;
+      background: radial-gradient(circle, rgba(152,152,224,0.07) 0%, rgba(13,13,24,0) 70%);
+      filter: blur(40px);
+    "></div>
+
+    <div class="accent-rule" id="s1-rule"></div>
+
+    <div class="prob-title" id="s1-title">
+      <span class="prob-bracket">【D.&nbsp;</span>
+      <span id="s1-prob"></span>
+      <span class="prob-bracket">&nbsp;】</span>
+    </div>
+
+    <div class="divider-line" id="s1-div"></div>
+
+    <div class="case-lbl" id="s1-clbl">
+      <span class="case-num">(i)</span>
+      <span class="case-cond" id="s1-cond"></span>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step-row" style="top:258px;" id="s1-r1">
+      <span class="step-badge s1">STEP 1</span>
+      <div class="step-content">
+        <div class="step-math" id="s1-m1"></div>
+        <div class="step-hint" id="s1-h1">絶対値記号はそのままはずす</div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-row" style="top:430px;" id="s1-r2">
+      <span class="step-badge s2">STEP 2</span>
+      <div class="step-content">
+        <div class="step-math" id="s1-m2"></div>
+        <div class="step-hint" id="s1-h2">両辺を-3で割るので、不等号の向きが変わる！</div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-row" style="top:614px;" id="s1-r3">
+      <span class="step-badge s3">STEP 3</span>
+      <div class="step-content">
+        <div class="step-math" id="s1-m3"></div>
+        <div class="step-hint" id="s1-h3">条件の確認をする！（共通範囲を取る）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 2 : Case (ii)
+  ═══════════════════════════════════════ -->
+  <div id="scene2" class="scene">
+    <div class="ghost" style="top:-40px; right:60px;">∣x∣</div>
+    <div class="bg-glow" style="
+      width:900px; height:900px; top:90px; left:510px;
+      background: radial-gradient(circle, rgba(152,152,224,0.07) 0%, rgba(13,13,24,0) 70%);
+      filter: blur(40px);
+    "></div>
+
+    <div class="accent-rule" id="s2-rule"></div>
+
+    <div class="prob-title" id="s2-title">
+      <span class="prob-bracket">【D.&nbsp;</span>
+      <span id="s2-prob"></span>
+      <span class="prob-bracket">&nbsp;】</span>
+    </div>
+
+    <div class="divider-line" id="s2-div"></div>
+
+    <div class="case-lbl" id="s2-clbl">
+      <span class="case-num">(ii)</span>
+      <span class="case-cond" id="s2-cond"></span>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step-row" style="top:258px;" id="s2-r1">
+      <span class="step-badge s1">STEP 1</span>
+      <div class="step-content">
+        <div class="step-math" id="s2-m1"></div>
+        <div class="step-hint" id="s2-h1">絶対値記号は-をつけてはずす</div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-row" style="top:430px;" id="s2-r2">
+      <span class="step-badge s2">STEP 2</span>
+      <div class="step-content">
+        <div class="step-math" id="s2-m2"></div>
+        <div class="step-hint" id="s2-h2">両辺を-5で割るので、不等号の向きが変わる！</div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-row" style="top:614px;" id="s2-r3">
+      <span class="step-badge s3">STEP 3</span>
+      <div class="step-content">
+        <div class="step-math" id="s2-m3"></div>
+        <div class="step-hint" id="s2-h3">条件の確認をする！（共通範囲を取る）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 3 : Final Answer
+  ═══════════════════════════════════════ -->
+  <div id="scene3" class="scene">
+    <div class="ghost" style="top:380px; left:700px; opacity:0.04;">∴</div>
+    <div class="bg-glow" style="
+      width:1100px; height:700px; top:200px; left:410px;
+      background: radial-gradient(circle, rgba(144,208,144,0.09) 0%, rgba(13,13,24,0) 70%);
+      filter: blur(50px);
+    "></div>
+
+    <div class="accent-rule" id="s3-rule"
+         style="background: rgba(144,208,144,0.4);"></div>
+
+    <div class="prob-title" id="s3-title">
+      <span class="prob-bracket">【D.&nbsp;</span>
+      <span id="s3-prob"></span>
+      <span class="prob-bracket">&nbsp;】</span>
+    </div>
+
+    <div class="divider-line" id="s3-div"></div>
+
+    <div class="ans-section" id="s3-ans">
+      <span class="ans-badge">STEP 4</span>
+      <div class="ans-content">
+        <div class="ans-math" id="s3-ans-math"></div>
+        <div class="ans-hint" id="s3-ans-hint">-3 ≤ x ≤ 1 と x &lt; -3 をまとめる</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+
+    /* ── KaTeX helpers ── */
+    function ri(tex) { return katex.renderToString(tex, { throwOnError:false, displayMode:false }); }
+    function rd(tex) { return katex.renderToString(tex, { throwOnError:false, displayMode:true  }); }
+
+    /* ── Render all math synchronously ── */
+    var PROB = '|x{+}3| \\geq 4x \\text{ を解く}';
+    document.getElementById('s1-prob').innerHTML = ri(PROB);
+    document.getElementById('s2-prob').innerHTML = ri(PROB);
+    document.getElementById('s3-prob').innerHTML = ri(PROB);
+
+    // Scene 1 — Case (i)
+    document.getElementById('s1-cond').innerHTML =
+      ri('x{+}3 \\geq 0 \\text{，すなわち } x \\geq -3 \\text{ のとき}');
+    document.getElementById('s1-m1').innerHTML =
+      rd('|x{+}3| \\geq 4x \\Rightarrow x{+}3 \\geq 4x');
+    document.getElementById('s1-m2').innerHTML =
+      rd('x - 4x \\geq -3 \\Rightarrow -3x \\geq -3 \\Rightarrow x \\leq 1');
+    document.getElementById('s1-m3').innerHTML =
+      rd('x \\geq -3 \\text{ より，}\\quad -3 \\leq x \\leq 1');
+
+    // Scene 2 — Case (ii)
+    document.getElementById('s2-cond').innerHTML =
+      ri('x{+}3 < 0 \\text{，すなわち } x < -3 \\text{ のとき}');
+    document.getElementById('s2-m1').innerHTML =
+      rd('|x{+}3| \\geq 4x \\Rightarrow -(x{+}3) \\geq 4x');
+    document.getElementById('s2-m2').innerHTML =
+      rd('-x-3 \\geq 4x \\Rightarrow -5x \\geq 3 \\Rightarrow x \\leq -\\dfrac{3}{5}');
+    document.getElementById('s2-m3').innerHTML =
+      rd('x < -3 \\text{ より，}\\quad x < -3');
+
+    // Scene 3 — Final answer
+    document.getElementById('s3-ans-math').innerHTML =
+      rd('\\text{(i),(ii)より，}\\quad x \\leq 1 \\quad \\cdots\\text{（答）}');
+
+    /* ════════════════════════════════════════
+       GSAP Timeline
+    ════════════════════════════════════════ */
+    var tl = gsap.timeline({ paused: true });
+
+    /* ─── SCENE 1: Title + Case (i) ─── */
+
+    // Accent rule (grow from top)
+    tl.fromTo('#s1-rule',
+      { opacity:0, scaleY:0, transformOrigin:'top center' },
+      { opacity:1, scaleY:1, duration:0.5, ease:'power2.out' }, 0.1);
+
+    // Problem title (drop in from above)
+    tl.fromTo('#s1-title',
+      { opacity:0, y:-38 },
+      { opacity:1, y:0, duration:0.7, ease:'power3.out' }, 0.2);
+
+    // Divider (wipe right)
+    tl.fromTo('#s1-div',
+      { opacity:0, scaleX:0 },
+      { opacity:1, scaleX:1, duration:0.55, ease:'power2.out' }, 0.8);
+
+    // Case (i) label (slide from left)
+    tl.fromTo('#s1-clbl',
+      { opacity:0, x:-55 },
+      { opacity:1, x:0, duration:0.55, ease:'expo.out' }, 1.1);
+
+    // STEP 1 row + hint
+    tl.fromTo('#s1-r1',
+      { opacity:0, x:-55 },
+      { opacity:1, x:0, duration:0.55, ease:'power3.out' }, 2.2);
+    tl.fromTo('#s1-h1',
+      { opacity:0 },
+      { opacity:1, duration:0.4, ease:'power2.out' }, 3.1);
+
+    // STEP 2 row + hint
+    tl.fromTo('#s1-r2',
+      { opacity:0, x:-55 },
+      { opacity:1, x:0, duration:0.55, ease:'expo.out' }, 4.8);
+    tl.fromTo('#s1-h2',
+      { opacity:0 },
+      { opacity:1, duration:0.4, ease:'power2.out' }, 5.7);
+
+    // STEP 3 row + hint
+    tl.fromTo('#s1-r3',
+      { opacity:0, x:-55 },
+      { opacity:1, x:0, duration:0.55, ease:'back.out(1.4)' }, 7.5);
+    tl.fromTo('#s1-h3',
+      { opacity:0 },
+      { opacity:1, duration:0.4, ease:'power2.out' }, 8.4);
+
+    /* ─── TRANSITION 1: crossfade at T1=12.5s ─── */
+    var T1 = 12.5;
+    tl.to('#scene1',
+      { opacity:0, duration:0.5, ease:'power2.inOut' }, T1);
+    tl.fromTo('#scene2',
+      { opacity:0 },
+      { opacity:1, duration:0.5, ease:'power2.inOut', overwrite:'auto' }, T1 + 0.1);
+    tl.set('#scene1', { visibility:'hidden' }, T1 + 0.55);
+
+    /* ─── SCENE 2: Case (ii), starts at S2=13.0s ─── */
+    var S2 = T1 + 0.5;
+
+    tl.fromTo('#s2-rule',
+      { opacity:0, scaleY:0, transformOrigin:'top center' },
+      { opacity:1, scaleY:1, duration:0.4, ease:'power2.out' }, S2);
+
+    tl.fromTo('#s2-title',
+      { opacity:0, y:-28 },
+      { opacity:1, y:0, duration:0.5, ease:'power3.out' }, S2 + 0.1);
+
+    tl.fromTo('#s2-div',
+      { opacity:0, scaleX:0 },
+      { opacity:1, scaleX:1, duration:0.5, ease:'power2.out' }, S2 + 0.4);
+
+    tl.fromTo('#s2-clbl',
+      { opacity:0, x:-55 },
+      { opacity:1, x:0, duration:0.55, ease:'expo.out' }, S2 + 0.7);
+
+    // STEP 1
+    tl.fromTo('#s2-r1',
+      { opacity:0, x:-55 },
+      { opacity:1, x:0, duration:0.55, ease:'power3.out' }, S2 + 1.5);
+    tl.fromTo('#s2-h1',
+      { opacity:0 },
+      { opacity:1, duration:0.4, ease:'power2.out' }, S2 + 2.4);
+
+    // STEP 2
+    tl.fromTo('#s2-r2',
+      { opacity:0, x:-55 },
+      { opacity:1, x:0, duration:0.55, ease:'expo.out' }, S2 + 4.2);
+    tl.fromTo('#s2-h2',
+      { opacity:0 },
+      { opacity:1, duration:0.4, ease:'power2.out' }, S2 + 5.1);
+
+    // STEP 3
+    tl.fromTo('#s2-r3',
+      { opacity:0, x:-55 },
+      { opacity:1, x:0, duration:0.55, ease:'back.out(1.4)' }, S2 + 7.0);
+    tl.fromTo('#s2-h3',
+      { opacity:0 },
+      { opacity:1, duration:0.4, ease:'power2.out' }, S2 + 7.9);
+
+    /* ─── TRANSITION 2: crossfade at T2=22.5s ─── */
+    var T2 = 22.5;
+    tl.to('#scene2',
+      { opacity:0, duration:0.5, ease:'power2.inOut' }, T2);
+    tl.fromTo('#scene3',
+      { opacity:0 },
+      { opacity:1, duration:0.5, ease:'power2.inOut', overwrite:'auto' }, T2 + 0.1);
+    tl.set('#scene2', { visibility:'hidden' }, T2 + 0.55);
+
+    /* ─── SCENE 3: Final Answer, starts at S3=23.0s ─── */
+    var S3 = T2 + 0.5;
+
+    tl.fromTo('#s3-rule',
+      { opacity:0, scaleY:0, transformOrigin:'top center' },
+      { opacity:1, scaleY:1, duration:0.5, ease:'power2.out' }, S3);
+
+    tl.fromTo('#s3-title',
+      { opacity:0, y:-28 },
+      { opacity:1, y:0, duration:0.5, ease:'power3.out' }, S3 + 0.1);
+
+    tl.fromTo('#s3-div',
+      { opacity:0, scaleX:0 },
+      { opacity:1, scaleX:1, duration:0.5, ease:'power2.out' }, S3 + 0.4);
+
+    // Final answer row rises in
+    tl.fromTo('#s3-ans',
+      { opacity:0, y:48 },
+      { opacity:1, y:0, duration:0.75, ease:'power3.out' }, S3 + 1.0);
+
+    // Hint fades in after answer
+    tl.fromTo('#s3-ans-hint',
+      { opacity:0 },
+      { opacity:1, duration:0.5, ease:'power2.out' }, S3 + 2.0);
+
+    // Subtle emphasis pulse on answer (0.01s gap avoids sequential overlap warning)
+    tl.to('#s3-ans-math',
+      { scale:1.04, duration:0.35, ease:'power2.out' }, S3 + 3.0);
+    tl.to('#s3-ans-math',
+      { scale:1.00, duration:0.35, ease:'power2.in', overwrite:'auto' }, S3 + 3.36);
+
+    // ── Final: fade to black (final scene — exit allowed) ──
+    tl.to('#scene3',
+      { opacity:0, duration:0.9, ease:'power2.inOut' }, S3 + 4.1);
+    tl.set('#scene3', { visibility:'hidden' }, S3 + 5.05);
+
+    window.__timelines['math-video'] = tl;
+  </script>
+</div>
+</body>
+</html>
