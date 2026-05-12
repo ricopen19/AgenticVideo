@@ -13,6 +13,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
+import * as yaml from "yaml";
 
 const ROOT_DIR = process.cwd();
 
@@ -37,6 +38,47 @@ interface ScriptLine {
 interface CharacterConfig {
   id: string;
   voicevoxSpeakerId: number;
+}
+
+// TTS前処理ルールの型
+interface TTSRules {
+  substitutions?: Record<string, string>;
+}
+
+// config/tts-rules.yaml を読み込む
+function loadTTSRules(): TTSRules {
+  const rulesPath = path.join(ROOT_DIR, "config", "tts-rules.yaml");
+  if (!fs.existsSync(rulesPath)) return {};
+  return yaml.parse(fs.readFileSync(rulesPath, "utf-8")) || {};
+}
+
+// $...$ 内の数式を読み上げ用テキストに変換
+function convertMathToSpeech(inner: string): string {
+  let s = inner;
+  s = s.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$2ぶんの$1");
+  s = s.replace(/\\leq?\b/g, "以下");
+  s = s.replace(/\\geq?\b/g, "以上");
+  s = s.replace(/</g, "より小さい");
+  s = s.replace(/>/g, "より大きい");
+  s = s.replace(/=/g, "イコール");
+  s = s.replace(/-(\w)/g, "マイナス$1");
+  s = s.replace(/\\[a-zA-Z]+/g, "");
+  s = s.replace(/[{}]/g, "");
+  return s.trim();
+}
+
+// VOICEVOXに送る前にテキストを前処理する
+function preprocessForTTS(text: string, rules: TTSRules): string {
+  let s = text;
+  // display math $$...$$ を除去
+  s = s.replace(/\$\$[\s\S]*?\$\$/g, "");
+  // inline math $...$ を読み上げ用テキストに変換
+  s = s.replace(/\$([^$\n]+)\$/g, (_, inner) => convertMathToSpeech(inner));
+  // 置換ルールを適用
+  for (const [from, to] of Object.entries(rules.substitutions ?? {})) {
+    s = s.replace(new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), to);
+  }
+  return s.replace(/\s{2,}/g, " ").trim();
 }
 
 // VOICEVOXが起動しているか確認
@@ -113,6 +155,11 @@ async function main() {
     process.exit(1);
   }
 
+  // TTS前処理ルール読み込み
+  const ttsRules = loadTTSRules();
+  const subCount = Object.keys(ttsRules.substitutions ?? {}).length;
+  console.log(`TTS前処理ルール: 置換 ${subCount} 件`);
+
   // 出力ディレクトリ作成
   if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -176,8 +223,14 @@ async function main() {
     try {
       console.log(`Generating: ${line.voiceFile} - "${line.text.substring(0, 30)}..."`);
 
+      // TTS前処理（LaTeX変換・置換ルール適用）
+      const ttsText = preprocessForTTS(line.text, ttsRules);
+      if (ttsText !== line.text) {
+        console.log(`  前処理: "${line.text.substring(0, 30)}..." → "${ttsText.substring(0, 30)}..."`);
+      }
+
       // 音声クエリ取得
-      const query = await getAudioQuery(host, line.text, speakerId);
+      const query = await getAudioQuery(host, ttsText, speakerId);
 
       // 音声合成
       const audio = await synthesize(host, query, speakerId);
@@ -186,8 +239,10 @@ async function main() {
       fs.writeFileSync(outputPath, Buffer.from(audio));
 
       // 長さを取得してフレーム数を計算
+      // frames は音声ファイルの自然なフレーム数（playbackRate は掛けない）
+      // getAdjustedFrames で /playbackRate することで正しい再生長になる
       const duration = getWavDuration(outputPath);
-      const frames = Math.ceil(duration * fps * playbackRate);
+      const frames = Math.ceil(duration * fps);
 
       durationsArray.push({
         id: line.id,

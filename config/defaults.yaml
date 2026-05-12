@@ -2,7 +2,7 @@
 
 newLine:
   character: zundamon
-  pauseAfter: 15
+  pauseAfter: 6
   durationInFrames: 60
   scene: 1
   emotion: null

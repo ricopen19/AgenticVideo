@@ -117,12 +117,17 @@ export type AnimationType = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomI
 
 // ビジュアルの型定義
 export interface VisualContent {
-  type: "image" | "text" | "none";
+  type: "image" | "text" | "math-step" | "none";
   src?: string;
   text?: string;
   fontSize?: number;
   color?: string;
   animation?: AnimationType;
+  // math-step専用
+  stepNum?: number;
+  stepColor?: string;
+  formula?: string;
+  hint?: string;
 }
 
 // 効果音の型定義

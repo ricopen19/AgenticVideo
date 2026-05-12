@@ -12,7 +12,7 @@ font:
   family: "M PLUS Rounded 1c"
 
   # フォントサイズ（ピクセル）
-  size: 70
+  size: 48
 
   # フォントの太さ（normal, bold, 100-900）
   # 900 = エクストラボールド（黒板風に最適）
@@ -37,10 +37,10 @@ subtitle:
   bottomOffset: 40
 
   # 字幕の最大幅（パーセント）
-  maxWidthPercent: 55
+  maxWidthPercent: 75
 
   # 字幕の最大幅（ピクセル上限）
-  maxWidthPixels: 1000
+  maxWidthPixels: 1400
 
   # アウトライン（袋文字）の太さ
   outlineWidth: 14

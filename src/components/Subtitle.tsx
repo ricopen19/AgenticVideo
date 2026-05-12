@@ -7,6 +7,25 @@ import { SETTINGS } from "../settings.generated";
 // BudouXパーサーを初期化（日本語の自然な改行位置を計算）
 const parser = loadDefaultJapaneseParser();
 
+// LaTeX記法を字幕表示用に変換
+function stripLatexForDisplay(text: string): string {
+  return text
+    .replace(/\$\$[\s\S]*?\$\$/g, '')
+    .replace(/\$([^$\n]+)\$/g, (_match, inner) =>
+      inner
+        .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+        .replace(/\\le\b/g, '≤')
+        .replace(/\\ge\b/g, '≥')
+        .replace(/\\leq\b/g, '≤')
+        .replace(/\\geq\b/g, '≥')
+        .replace(/\\[a-zA-Z]+/g, '')
+        .replace(/[{}]/g, '')
+        .trim()
+    )
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 interface SubtitleProps {
   text: string;
   character: CharacterId;
@@ -41,7 +60,8 @@ const BudouXText = ({ text }: { text: string }) => {
   );
 };
 
-export const Subtitle: React.FC<SubtitleProps> = ({ text, character }) => {
+export const Subtitle: React.FC<SubtitleProps> = ({ text: rawText, character }) => {
+  const text = stripLatexForDisplay(rawText);
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 

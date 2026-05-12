@@ -45,7 +45,7 @@ VOICEVOXアプリを起動しておいてください（音声生成に必要）
 npm start
 ```
 
-ブラウザで http://localhost:3000 を開くとプレビューが表示されます。
+ブラウザで http://localhost:3001 を開くとプレビューが表示されます。
 デモ用のセリフと音声が含まれているので、すぐに動作確認できます。
 
 ### 5. 動画を作成（Claude Code使用時）
@@ -133,12 +133,42 @@ Claude Codeに話しかけるだけ：
 
 ---
 
+## 編集フロー
+
+変更内容によって必要なコマンドが異なります。
+
+| 変更内容 | 必要な操作 | Studio への反映 |
+|---------|-----------|----------------|
+| `script.yaml`（セリフ・ビジュアル）を編集 | `npm run sync-script` | 自動リロード |
+| `video-settings.yaml`（フォント・色）を編集 | `npm run sync-settings` | 自動リロード |
+| `src/` 以下のコードを編集 | 不要 | 自動リロード |
+| セリフのテキストを変えて音声も更新したい | `npm run voices` | 自動リロード |
+| セリフの行数・順番を変えた | `npm run preview-map` で再生成 | — |
+
+**基本的な確認フロー:**
+```bash
+# ターミナル1: Studio を起動したまま
+npm start   # http://localhost:3001
+
+# ターミナル2: 編集のたびに
+npm run sync-script    # script.yaml を変更したとき
+npm run preview-map    # フレームマップを更新してブラウザで確認
+npm run build          # 問題なければフルレンダリング
+```
+
+`preview-map` が生成する `out/preview-map.html` を開き、行をクリックすると Studio のそのフレームに直接ジャンプできます（Studio 起動中のみ）。
+
+---
+
 ## コマンド一覧
 
 | コマンド | 説明 |
 |---------|------|
-| `npm start` | プレビュー（http://localhost:3000） |
-| `npm run voices` | 音声生成 |
+| `npm start` | Remotion Studio 起動（http://localhost:3001） |
+| `npm run sync-script` | script.yaml → script.ts に同期 |
+| `npm run sync-settings` | video-settings.yaml → settings.generated.ts に同期 |
+| `npm run voices` | 音声生成（VOICEVOX 起動必要）+ sync-script |
+| `npm run preview-map` | フレームマップ生成（out/preview-map.html） |
 | `npm run build` | 動画出力（out/video.mp4） |
 | `npm run init` | 新規プロジェクト初期化 |
 

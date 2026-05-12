@@ -28,3 +28,9 @@ npm-debug.log*
 
 # Generated voices (optional - uncomment if you don't want to track)
 # public/voices/
+
+# Docs (personal notes, not for the template)
+docs/
+
+# Personal content images
+public/content/

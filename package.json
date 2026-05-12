@@ -10,6 +10,7 @@
     "sync": "npm run sync-settings && npm run sync-script",
     "sync-settings": "npx ts-node scripts/sync-settings.ts",
     "sync-script": "npx ts-node scripts/sync-script.ts",
+    "preview-map": "npx ts-node scripts/preview-map.ts && open out/preview-map.html",
     "init": "npx ts-node scripts/init-project.ts",
     "editor": "concurrently \"npm run editor:server\" \"npm run editor:client\"",
     "editor:client": "cd editor && npm run dev",
@@ -23,8 +24,10 @@
     "@remotion/google-fonts": "^4.0.409",
     "@remotion/renderer": "^4.0.0",
     "budoux": "^0.6.2",
+    "katex": "^0.16.45",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-latex-next": "^3.0.0",
     "remotion": "^4.0.0",
     "yaml": "^2.3.4"
   },
