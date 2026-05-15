@@ -24,14 +24,15 @@ interface ScriptLine {
   scene: number;
   pauseAfter: number;
   emotion?: string;
-  visual?: {
+  visuals?: Array<{
     type: string;
     src?: string;
+    startFrom?: number;
     text?: string;
     fontSize?: number;
     color?: string;
     animation?: string;
-  };
+  }>;
   se?: {
     src: string;
     volume?: number;
@@ -117,8 +118,9 @@ export type AnimationType = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomI
 
 // ビジュアルの型定義
 export interface VisualContent {
-  type: "image" | "text" | "math-step" | "none";
+  type: "image" | "video" | "text" | "math-step" | "svg" | "none";
   src?: string;
+  startFrom?: number;   // video専用: 再生開始フレーム（省略時は0）
   text?: string;
   fontSize?: number;
   color?: string;
@@ -128,6 +130,8 @@ export interface VisualContent {
   stepColor?: string;
   formula?: string;
   hint?: string;
+  // svg専用
+  svg?: string;
 }
 
 // 効果音の型定義
@@ -157,7 +161,7 @@ export interface ScriptLine {
   durationInFrames: number;
   pauseAfter: number;
   emotion?: "normal" | "happy" | "surprised" | "thinking" | "sad";
-  visual?: VisualContent;
+  visuals?: VisualContent[];
   se?: SoundEffect;
 }
 

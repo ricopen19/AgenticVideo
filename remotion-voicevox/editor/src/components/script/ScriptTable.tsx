@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ScriptLine, Metadata } from '../../types';
 import { ScriptRow } from './ScriptRow';
 import { ScriptEditor } from './ScriptEditor';
+import { ImportModal } from './ImportModal';
 
 interface ScriptTableProps {
   script: ScriptLine[];
@@ -9,6 +10,10 @@ interface ScriptTableProps {
   onUpdate: (id: number, data: Partial<ScriptLine>) => Promise<ScriptLine>;
   onCreate: (data: Omit<ScriptLine, 'id'>) => Promise<ScriptLine>;
   onDelete: (id: number) => Promise<void>;
+  onMoveUp: (id: number) => Promise<void>;
+  onMoveDown: (id: number) => Promise<void>;
+  onInsertAt: (afterId: number, data: Omit<ScriptLine, 'id'>) => Promise<ScriptLine>;
+  onBulkImport: (lines: Array<{ character: string; text: string }>, mode: 'replace' | 'append') => Promise<unknown>;
 }
 
 export function ScriptTable({
@@ -17,19 +22,26 @@ export function ScriptTable({
   onUpdate,
   onCreate,
   onDelete,
+  onMoveUp,
+  onMoveDown,
+  onInsertAt,
+  onBulkImport,
 }: ScriptTableProps) {
   const [editingLine, setEditingLine] = useState<ScriptLine | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [insertAfterId, setInsertAfterId] = useState<number | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const handleEdit = (line: ScriptLine) => {
     setEditingLine(line);
     setIsCreating(false);
+    setInsertAfterId(null);
   };
 
   const handleCreate = () => {
     const lastLine = script[script.length - 1];
     const newLine: ScriptLine = {
-      id: 0, // Will be assigned by server
+      id: 0,
       character: metadata.characters[0]?.id || 'zundamon',
       text: '',
       scene: lastLine?.scene || 1,
@@ -39,6 +51,22 @@ export function ScriptTable({
     };
     setEditingLine(newLine);
     setIsCreating(true);
+    setInsertAfterId(null);
+  };
+
+  const handleInsertBelow = (line: ScriptLine) => {
+    const newLine: ScriptLine = {
+      id: 0,
+      character: line.character,
+      text: '',
+      scene: line.scene,
+      voiceFile: '',
+      durationInFrames: 60,
+      pauseAfter: line.pauseAfter,
+    };
+    setEditingLine(newLine);
+    setIsCreating(true);
+    setInsertAfterId(line.id);
   };
 
   const handleSave = async (data: Partial<ScriptLine>) => {
@@ -46,12 +74,17 @@ export function ScriptTable({
 
     try {
       if (isCreating) {
-        await onCreate(data as Omit<ScriptLine, 'id'>);
+        if (insertAfterId !== null) {
+          await onInsertAt(insertAfterId, data as Omit<ScriptLine, 'id'>);
+        } else {
+          await onCreate(data as Omit<ScriptLine, 'id'>);
+        }
       } else {
         await onUpdate(editingLine.id, data);
       }
       setEditingLine(null);
       setIsCreating(false);
+      setInsertAfterId(null);
     } catch (err) {
       console.error('Failed to save:', err);
     }
@@ -69,18 +102,27 @@ export function ScriptTable({
   const handleClose = () => {
     setEditingLine(null);
     setIsCreating(false);
+    setInsertAfterId(null);
   };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-gray-800">Script</h2>
-        <button
-          onClick={handleCreate}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-        >
-          + Add Line
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="px-4 py-2 text-sm border border-indigo-300 text-indigo-600 bg-white rounded-lg hover:bg-indigo-50 transition-colors"
+          >
+            一括インポート
+          </button>
+          <button
+            onClick={handleCreate}
+            className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+          >
+            + Add Line
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -96,13 +138,19 @@ export function ScriptTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {script.map((line) => (
+            {script.map((line, index) => (
               <ScriptRow
                 key={line.id}
                 line={line}
+                index={index}
+                totalLines={script.length}
                 characters={metadata.characters}
+                prevVisuals={index > 0 ? script[index - 1].visuals : undefined}
                 onEdit={() => handleEdit(line)}
                 onDelete={() => handleDelete(line.id)}
+                onMoveUp={() => onMoveUp(line.id)}
+                onMoveDown={() => onMoveDown(line.id)}
+                onInsertBelow={() => handleInsertBelow(line)}
                 onQuickUpdate={(field, value) => onUpdate(line.id, { [field]: value })}
               />
             ))}
@@ -123,6 +171,14 @@ export function ScriptTable({
           isNew={isCreating}
           onSave={handleSave}
           onClose={handleClose}
+        />
+      )}
+
+      {showImport && (
+        <ImportModal
+          metadata={metadata}
+          onImport={onBulkImport as (lines: Array<{ character: string; text: string }>, mode: 'replace' | 'append') => Promise<void>}
+          onClose={() => setShowImport(false)}
         />
       )}
     </div>

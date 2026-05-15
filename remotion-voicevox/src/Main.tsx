@@ -129,7 +129,8 @@ export const Main: React.FC = () => {
         lineId={currentLine?.id ?? null}
         frame={frame}
         fps={fps}
-        visual={currentLine?.visual}
+        visuals={currentLine?.visuals}
+        lineText={currentLine?.text}
       />
 
       {/* キャラクター */}

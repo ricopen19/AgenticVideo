@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { ScriptLine, Metadata } from '../../types';
+import type { ScriptLine, Metadata, VisualContent } from '../../types';
 
 interface ScriptEditorProps {
   line: ScriptLine;
@@ -9,13 +9,9 @@ interface ScriptEditorProps {
   onClose: () => void;
 }
 
-export function ScriptEditor({
-  line,
-  metadata,
-  isNew,
-  onSave,
-  onClose,
-}: ScriptEditorProps) {
+const emptyVisual = (): VisualContent => ({ type: 'text', text: '', animation: 'fadeIn', fontSize: 64 });
+
+export function ScriptEditor({ line, metadata, isNew, onSave, onClose }: ScriptEditorProps) {
   const [formData, setFormData] = useState<ScriptLine>(line);
   const [saving, setSaving] = useState(false);
 
@@ -27,26 +23,34 @@ export function ScriptEditor({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleVisualChange = (field: string, value: unknown) => {
-    setFormData((prev) => ({
-      ...prev,
-      visual: {
-        ...prev.visual,
-        type: prev.visual?.type || 'none',
-        [field]: value,
-      },
-    }));
-  };
-
   const handleSeChange = (field: string, value: unknown) => {
     setFormData((prev) => ({
       ...prev,
-      se: {
-        ...prev.se,
-        src: prev.se?.src || '',
-        [field]: value,
-      },
+      se: { ...prev.se, src: prev.se?.src || '', [field]: value },
     }));
+  };
+
+  // visuals[] 操作
+  const updateVisual = (idx: number, field: keyof VisualContent, value: unknown) => {
+    setFormData((prev) => {
+      const visuals = [...(prev.visuals || [])];
+      visuals[idx] = { ...visuals[idx], [field]: value };
+      return { ...prev, visuals };
+    });
+  };
+
+  const addVisual = () => {
+    setFormData((prev) => ({
+      ...prev,
+      visuals: [...(prev.visuals || []), emptyVisual()],
+    }));
+  };
+
+  const removeVisual = (idx: number) => {
+    setFormData((prev) => {
+      const visuals = (prev.visuals || []).filter((_, i) => i !== idx);
+      return { ...prev, visuals: visuals.length > 0 ? visuals : undefined };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,6 +64,7 @@ export function ScriptEditor({
   };
 
   const emotions = metadata.emotions[formData.character] || ['normal'];
+  const visuals = formData.visuals || [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -68,190 +73,203 @@ export function ScriptEditor({
           <h3 className="text-lg font-semibold">
             {isNew ? 'Add Script Line' : `Edit Line #${line.id}`}
           </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            &times;
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Character */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Character
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Character</label>
             <select
               value={formData.character}
               onChange={(e) => handleChange('character', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
-              {metadata.characters.map((char) => (
-                <option key={char.id} value={char.id}>
-                  {char.name} ({char.id})
-                </option>
+              {metadata.characters.filter(c => c.speakerId !== null).map((char) => (
+                <option key={char.id} value={char.id}>{char.name}</option>
               ))}
             </select>
           </div>
 
-          {/* Text (for voice) */}
+          {/* Text */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Text (Voice)
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Text (Voice)</label>
             <textarea
               value={formData.text}
               onChange={(e) => handleChange('text', e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Voice generation text (use katakana for English)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="Voice generation text"
             />
           </div>
 
-          {/* Display Text (optional) */}
+          {/* Display Text */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Display Text (optional)
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Display Text (optional)</label>
             <textarea
               value={formData.displayText || ''}
               onChange={(e) => handleChange('displayText', e.target.value || undefined)}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="Subtitle text (if different from voice)"
             />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            {/* Scene */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Scene
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Scene</label>
               <input
                 type="number"
                 value={formData.scene}
                 onChange={(e) => handleChange('scene', parseInt(e.target.value, 10))}
                 min={1}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
-
-            {/* Emotion */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Emotion
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Emotion</label>
               <select
                 value={formData.emotion || 'normal'}
                 onChange={(e) => handleChange('emotion', e.target.value === 'normal' ? undefined : e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {emotions.map((emotion) => (
-                  <option key={emotion} value={emotion}>
-                    {emotion}
-                  </option>
+                  <option key={emotion} value={emotion}>{emotion}</option>
                 ))}
               </select>
             </div>
-
-            {/* Pause After */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pause After (frames)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pause After (frames)</label>
               <input
                 type="number"
                 value={formData.pauseAfter}
                 onChange={(e) => handleChange('pauseAfter', parseInt(e.target.value, 10))}
                 min={0}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          {/* Visual Content */}
+          {/* Visuals */}
           <div className="border-t pt-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Visual Content</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Type</label>
-                <select
-                  value={formData.visual?.type || 'none'}
-                  onChange={(e) => handleVisualChange('type', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                >
-                  {metadata.visualTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Animation</label>
-                <select
-                  value={formData.visual?.animation || 'fadeIn'}
-                  onChange={(e) => handleVisualChange('animation', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                >
-                  {metadata.animations.map((anim) => (
-                    <option key={anim} value={anim}>
-                      {anim}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-700">ビジュアル (Visuals)</h4>
+              <button
+                type="button"
+                onClick={addVisual}
+                className="px-3 py-1 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600"
+              >
+                ＋ ピンを追加
+              </button>
             </div>
 
-            {formData.visual?.type === 'image' && (
-              <div className="mt-2">
-                <label className="block text-xs text-gray-500 mb-1">Image Source</label>
-                <input
-                  type="text"
-                  value={formData.visual?.src || ''}
-                  onChange={(e) => handleVisualChange('src', e.target.value)}
-                  placeholder="filename.png (in public/content/)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
-              </div>
+            {visuals.length === 0 && (
+              <p className="text-xs text-gray-400">ピンなし（テキストから自動抽出）</p>
             )}
 
-            {formData.visual?.type === 'text' && (
-              <div className="mt-2 space-y-2">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Visual Text</label>
-                  <input
-                    type="text"
-                    value={formData.visual?.text || ''}
-                    onChange={(e) => handleVisualChange('text', e.target.value)}
-                    placeholder="Text to display"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  />
+            {visuals.map((v, i) => (
+              <div key={i} className="mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-amber-600">📌{visuals.length > 1 ? ` ${i + 1}` : ''}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeVisual(i)}
+                    className="text-xs text-red-400 hover:text-red-600"
+                  >
+                    削除
+                  </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Font Size</label>
-                    <input
-                      type="number"
-                      value={formData.visual?.fontSize || 72}
-                      onChange={(e) => handleVisualChange('fontSize', parseInt(e.target.value, 10))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
+                    <label className="block text-xs text-gray-500 mb-1">Type</label>
+                    <select
+                      value={v.type}
+                      onChange={(e) => updateVisual(i, 'type', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      {metadata.visualTypes.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Color</label>
-                    <input
-                      type="color"
-                      value={formData.visual?.color || '#ffffff'}
-                      onChange={(e) => handleVisualChange('color', e.target.value)}
-                      className="w-full h-10 border border-gray-300 rounded-lg"
-                    />
+                    <label className="block text-xs text-gray-500 mb-1">Animation</label>
+                    <select
+                      value={v.animation || 'fadeIn'}
+                      onChange={(e) => updateVisual(i, 'animation', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      {metadata.animations.map((anim) => (
+                        <option key={anim} value={anim}>{anim}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+
+                {(v.type === 'image' || v.type === 'video') && (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Source</label>
+                      <input
+                        type="text"
+                        value={v.src || ''}
+                        onChange={(e) => updateVisual(i, 'src', e.target.value)}
+                        placeholder="filename (in public/content/)"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    {v.type === 'video' && (
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Start From (frames)</label>
+                        <input
+                          type="number"
+                          value={v.startFrom ?? 0}
+                          onChange={(e) => updateVisual(i, 'startFrom', parseInt(e.target.value, 10) || 0)}
+                          min={0}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {v.type === 'text' && (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">数式テキスト</label>
+                      <textarea
+                        value={v.text || ''}
+                        onChange={(e) => updateVisual(i, 'text', e.target.value)}
+                        placeholder="$$\frac{a}{b}$$"
+                        rows={2}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Font Size</label>
+                        <input
+                          type="number"
+                          value={v.fontSize || 64}
+                          onChange={(e) => updateVisual(i, 'fontSize', parseInt(e.target.value, 10))}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Color</label>
+                        <input
+                          type="color"
+                          value={v.color || '#ffffff'}
+                          onChange={(e) => updateVisual(i, 'color', e.target.value)}
+                          className="w-full h-8 border border-gray-300 rounded"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
 
           {/* Sound Effect */}
@@ -274,22 +292,15 @@ export function ScriptEditor({
                   type="number"
                   value={formData.se?.volume || 1}
                   onChange={(e) => handleSeChange('volume', parseFloat(e.target.value))}
-                  min={0}
-                  max={1}
-                  step={0.1}
+                  min={0} max={1} step={0.1}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:text-gray-800">
               Cancel
             </button>
             <button

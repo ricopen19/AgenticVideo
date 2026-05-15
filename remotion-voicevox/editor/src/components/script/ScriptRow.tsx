@@ -1,27 +1,39 @@
 import { useState, useRef } from 'react';
-import type { ScriptLine, CharacterInfo } from '../../types';
+import { createPortal } from 'react-dom';
+import Latex from 'react-latex-next';
+import type { ScriptLine, CharacterInfo, VisualContent } from '../../types';
 
 interface ScriptRowProps {
   line: ScriptLine;
+  index: number;
+  totalLines: number;
   characters: CharacterInfo[];
+  prevVisuals?: VisualContent[];
   onEdit: () => void;
   onDelete: () => void;
-  onQuickUpdate: (field: keyof ScriptLine, value: number | string) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onInsertBelow: () => void;
+  onQuickUpdate: (field: keyof ScriptLine, value: unknown) => void;
 }
 
-export function ScriptRow({ line, characters, onEdit, onDelete, onQuickUpdate }: ScriptRowProps) {
+export function ScriptRow({ line, index, totalLines, characters, prevVisuals, onEdit, onDelete, onMoveUp, onMoveDown, onInsertBelow, onQuickUpdate }: ScriptRowProps) {
   const [editingField, setEditingField] = useState<'pauseAfter' | 'text' | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [pinPreview, setPinPreview] = useState<{ idx: number; x: number; y: number } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pinRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   const character = characters.find((c) => c.id === line.character);
   const characterName = character?.name || line.character;
 
-  // Get character color
-  const characterColor = line.character === 'zundamon' ? 'bg-green-100 text-green-800' :
-                         line.character === 'metan' ? 'bg-pink-100 text-pink-800' :
-                         'bg-gray-100 text-gray-800';
+  const charColor = character?.color ?? '#6b7280';
+  const badgeStyle: React.CSSProperties = {
+    backgroundColor: `${charColor}22`,
+    color: charColor,
+    border: `1px solid ${charColor}55`,
+  };
 
   const startEditing = (field: 'pauseAfter' | 'text', e: React.MouseEvent) => {
     e.stopPropagation();
@@ -72,14 +84,33 @@ export function ScriptRow({ line, characters, onEdit, onDelete, onQuickUpdate }:
 
   const toggleCharacter = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const chars = characters.map(c => c.id);
-    const currentIdx = chars.indexOf(line.character);
-    const nextIdx = (currentIdx + 1) % chars.length;
-    onQuickUpdate('character', chars[nextIdx]);
+    const voiceableIds = characters.filter(c => c.speakerId !== null).map(c => c.id);
+    const currentIdx = voiceableIds.indexOf(line.character);
+    const nextIdx = (currentIdx + 1) % voiceableIds.length;
+    onQuickUpdate('character', voiceableIds[nextIdx]);
   };
 
+  const removeVisual = (e: React.MouseEvent, idx: number) => {
+    e.stopPropagation();
+    setPinPreview(null);
+    const newVisuals = (line.visuals || []).filter((_, i) => i !== idx);
+    onQuickUpdate('visuals', newVisuals.length > 0 ? newVisuals : undefined);
+  };
+
+  const inheritVisuals = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!prevVisuals || prevVisuals.length === 0) return;
+    // 引き継いだビジュアルは animation: none（既に表示済みのため再アニメーション不要）
+    const inherited = prevVisuals.map(v => ({ ...v, animation: 'none' as const }));
+    const current = line.visuals || [];
+    onQuickUpdate('visuals', [...inherited, ...current]);
+  };
+
+  const visuals = line.visuals || [];
+  const hasInheritSource = prevVisuals && prevVisuals.length > 0;
+
   return (
-    <tr className="hover:bg-gray-50 cursor-pointer" onClick={onEdit}>
+    <tr className="group hover:bg-gray-50 cursor-pointer" onClick={onEdit}>
       <td className="px-2 py-2 text-sm text-gray-500">
         <div className="flex items-center gap-1">
           <button
@@ -93,7 +124,10 @@ export function ScriptRow({ line, characters, onEdit, onDelete, onQuickUpdate }:
         </div>
       </td>
       <td className="px-2 py-2" onClick={toggleCharacter}>
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 ${characterColor}`}>
+        <span
+          className="inline-flex px-2 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-75 transition-opacity"
+          style={badgeStyle}
+        >
           {characterName}
         </span>
       </td>
@@ -109,16 +143,53 @@ export function ScriptRow({ line, characters, onEdit, onDelete, onQuickUpdate }:
             autoFocus
           />
         ) : (
-          <>
-            <div className="max-w-md truncate hover:bg-blue-50 px-1 rounded">
-              {line.displayText || line.text}
-            </div>
-            {line.displayText && (
-              <div className="text-xs text-gray-400 truncate max-w-md">
-                Voice: {line.text}
+          <div className="flex items-start gap-1.5">
+            <div className="flex-1 min-w-0">
+              <div className="max-w-md truncate hover:bg-blue-50 px-1 rounded">
+                {line.displayText || line.text}
               </div>
+              {line.displayText && (
+                <div className="text-xs text-gray-400 truncate max-w-md">
+                  Voice: {line.text}
+                </div>
+              )}
+            </div>
+            {/* ピンバッジ（複数対応） */}
+            <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+              {visuals.filter(v => v.type !== 'none').map((v, i) => (
+                <span
+                  key={i}
+                  ref={el => { pinRefs.current[i] = el; }}
+                  className="relative inline-flex items-center gap-0.5 text-xs px-1 py-0.5 bg-amber-100 text-amber-600 rounded cursor-default group/pin"
+                  onMouseEnter={() => {
+                    const rect = pinRefs.current[i]?.getBoundingClientRect();
+                    if (rect) setPinPreview({ idx: i, x: rect.left, y: rect.bottom + 6 });
+                  }}
+                  onMouseLeave={() => setPinPreview(null)}
+                  title={`ピン${visuals.length > 1 ? i + 1 : ''}: ${v.type}`}
+                >
+                  📌{visuals.length > 1 ? <sup>{i + 1}</sup> : null}
+                  <button
+                    onClick={(e) => removeVisual(e, i)}
+                    className="opacity-0 group-hover/pin:opacity-100 transition-opacity ml-0.5 text-amber-400 hover:text-red-500 leading-none"
+                    title="ピンを削除"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            {/* KaTeX ツールチップ */}
+            {pinPreview !== null && visuals[pinPreview.idx]?.type === 'text' && visuals[pinPreview.idx]?.text && createPortal(
+              <div
+                style={{ position: 'fixed', left: pinPreview.x, top: pinPreview.y, zIndex: 9999 }}
+                className="bg-gray-900 text-white rounded-lg px-4 py-3 shadow-2xl max-w-lg text-base pointer-events-none"
+              >
+                <Latex>{visuals[pinPreview.idx].text!}</Latex>
+              </div>,
+              document.body
             )}
-          </>
+          </div>
         )}
       </td>
       <td className="px-2 py-2 text-sm text-gray-400 text-right tabular-nums">
@@ -140,9 +211,51 @@ export function ScriptRow({ line, characters, onEdit, onDelete, onQuickUpdate }:
           <span className="cursor-pointer hover:bg-blue-100 px-1 rounded">{line.pauseAfter}</span>
         )}
       </td>
-      <td className="px-2 py-2 text-sm">
-        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          <button onClick={onDelete} className="text-red-500 hover:text-red-700">Del</button>
+      <td className="px-2 py-2 text-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-0.5">
+          {/* 常時表示: Del */}
+          <button
+            onClick={onDelete}
+            className="px-1.5 py-0.5 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+            title="削除"
+          >
+            ✕
+          </button>
+          {/* ホバー時に表示: ↑ ↓ ＋ 引き継ぎ */}
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={onMoveUp}
+              disabled={index === 0}
+              className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed"
+              title="上に移動"
+            >
+              ↑
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={index === totalLines - 1}
+              className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed"
+              title="下に移動"
+            >
+              ↓
+            </button>
+            <button
+              onClick={onInsertBelow}
+              className="px-1.5 py-0.5 text-xs text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded"
+              title="下に行を挿入"
+            >
+              ＋
+            </button>
+            {hasInheritSource && (
+              <button
+                onClick={inheritVisuals}
+                className="px-1.5 py-0.5 text-xs text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded"
+                title="前の行のピンを引き継ぐ"
+              >
+                📌↑
+              </button>
+            )}
+          </div>
         </div>
       </td>
     </tr>

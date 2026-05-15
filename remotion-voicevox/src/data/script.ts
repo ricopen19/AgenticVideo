@@ -5,8 +5,9 @@ export type AnimationType = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomI
 
 // ビジュアルの型定義
 export interface VisualContent {
-  type: "image" | "text" | "math-step" | "none";
+  type: "image" | "video" | "text" | "math-step" | "svg" | "none";
   src?: string;
+  startFrom?: number;   // video専用: 再生開始フレーム（省略時は0）
   text?: string;
   fontSize?: number;
   color?: string;
@@ -16,6 +17,8 @@ export interface VisualContent {
   stepColor?: string;
   formula?: string;
   hint?: string;
+  // svg専用
+  svg?: string;
 }
 
 // 効果音の型定義
@@ -45,7 +48,7 @@ export interface ScriptLine {
   durationInFrames: number;
   pauseAfter: number;
   emotion?: "normal" | "happy" | "surprised" | "thinking" | "sad";
-  visual?: VisualContent;
+  visuals?: VisualContent[];
   se?: SoundEffect;
 }
 
@@ -68,323 +71,334 @@ export const scriptData: ScriptLine[] = [
   {
     "id": 1,
     "character": "metan",
-    "text": "あら、ずんだもん。この不等式の問題で止まっているようね。どこが難しそうかしら？",
+    "text": "「今回は『不等式を満たす整数 $x$ がちょうど6個存在するような $a$ の値の範囲』を考えていくわよ。まずは準備として、大元の不等式①を解くところから始めましょうか。」",
     "scene": 1,
     "pauseAfter": 6,
     "voiceFile": "01_metan.wav",
-    "durationInFrames": 193
+    "durationInFrames": 380
   },
   {
     "id": 2,
     "character": "zundamon",
-    "text": "めたん先生、この $x + a < 3x - 2 < -x + 10$ ってやつなのだ。式が繋がっているし、おまけに文字の $a$ まで入っていて、何から手を付ければいいかさっぱりなのだ。",
-    "displayText": "この連立不等式、文字 a まで入っていて\n何から手を付ければいいかさっぱりなのだ。",
+    "text": "「よっしゃ！ まかせるのだ！」\n🗺️ 解法の全体像flowchart TD\n    A[\"①の解の確認<br>（範囲の数式化）\"] --> B[\"区間の『中心』を見つける\"]\n    B --> C[\"中心から近い順に<br>整数をカウント（表を作成）\"]\n    C --> D[\"ちょうど6個になる<br>『端の数』の条件を考える\"]\n    D --> E[\"不等式を立てて<br>aの範囲を解く\"]\n1️⃣ 不等式①を解く",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$x + a < 3x - 2 < -x + 10$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
     "voiceFile": "02_zundamon.wav",
-    "durationInFrames": 627
+    "durationInFrames": 151
   },
   {
     "id": 3,
     "character": "metan",
-    "text": "そうね。でも、大きな塊は分けて考えるのが鉄則よ。この「繋がった不等式」は、どういう意味だったかしら？",
+    "text": "「問題の不等式はこれね。$a$ は正の定数よ。」$$|2x - 3| \\leqq a$$",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$x + a < 3x - 2 < -x + 10$",
-      "fontSize": 64,
-      "animation": "none"
-    },
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$$|2x - 3| \\leqq a$$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
     "voiceFile": "03_metan.wav",
-    "durationInFrames": 280
+    "durationInFrames": 111
   },
   {
     "id": 4,
     "character": "zundamon",
-    "text": "えーっと……左側と右側が両方成り立つってことなのだ？",
+    "text": "「絶対値の不等式なのだ！ $|X| \\leqq a$ の形は、$-a \\leqq X \\leqq a$ になるって習ったのだ。だから、こうやって外すのだ！」$$-a \\leqq 2x - 3 \\leqq a$$",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$x + a < 3x - 2 < -x + 10$",
-      "fontSize": 64,
-      "animation": "none"
-    },
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$$-a \\leqq 2x - 3 \\leqq a$$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
     "voiceFile": "04_zundamon.wav",
-    "durationInFrames": 152
+    "durationInFrames": 350
   },
   {
     "id": 5,
     "character": "metan",
-    "text": "その通りよ。まずは、それぞれを整理してみましょう。特に $a$ が入っていない方は、すぐに解けそうじゃない？",
+    "text": "「その通り！ じゃあ、真ん中を $x$ だけにするために、順番に変形していってちょうだい。」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$x + a < 3x - 2 < -x + 10$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
     "voiceFile": "05_metan.wav",
-    "durationInFrames": 264
+    "durationInFrames": 200
   },
   {
     "id": 6,
     "character": "zundamon",
-    "text": "やってみるのだ！ 右側の $3x - 2 < -x + 10$ を解くと…… $x < 3$ になったのだ。",
+    "text": "「まずは全部の辺に $3$ を足すのだ！」$$3 - a \\leqq 2x \\leqq 3 + a$$",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$3x - 2 < -x + 10$\n$$4x < 12$$\n$$x < 3$$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$$3 - a \\leqq 2x \\leqq 3 + a$$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
     "voiceFile": "06_zundamon.wav",
-    "durationInFrames": 355
+    "durationInFrames": 84
   },
   {
     "id": 7,
-    "character": "metan",
-    "text": "正解よ。じゃあ、左側の $x + a < 3x - 2$ も、$x$ について解いてみて。",
+    "character": "zundamon",
+    "text": "「次に、全部を $2$ で割るのだ！ これで解が求まったのだ！」$$\\frac{3 - a}{2} \\leqq x \\leqq \\frac{3 + a}{2} \\quad \\cdots \\text{（解）}$$",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$3x - 2 < -x + 10$\n$$4x < 12$$\n$$x < 3$$",
-      "fontSize": 64,
-      "animation": "none"
-    },
-    "voiceFile": "07_metan.wav",
-    "durationInFrames": 327
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$$\\frac{3 - a}{2} \\leqq x \\leqq \\frac{3 + a}{2} \\quad \\cdots \\text{（解）}$$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
+    "voiceFile": "07_zundamon.wav",
+    "durationInFrames": 144
   },
   {
     "id": 8,
-    "character": "zundamon",
-    "text": "うう、文字があるけど頑張るのだ。両辺を $-2$ で割るから、不等号の向きが逆転して…… $x > \\frac{a+2}{2}$ なのだ！",
+    "character": "metan",
+    "text": "「完璧ね！ この $x$ の範囲の中に、整数が『ちょうど6個』入るような $a$ を探していくわよ。」\n2️⃣ 区間の「中心」を見つける",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$-2x < -a - 2$$\n\n$$x > \\frac{a+2}{2}$$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
-    "voiceFile": "08_zundamon.wav",
-    "durationInFrames": 405
+    "voiceFile": "08_metan.wav",
+    "durationInFrames": 334
   },
   {
     "id": 9,
     "character": "metan",
-    "text": "いいわね。これで、条件を整理するとこうなるわ。",
+    "text": "「ここからが(3)の本番よ。さっき求めた範囲には文字 $a$ が入っていて、このままじゃ考えにくいわよね。こういう時は、この区間の『中心（真ん中）』がどこにあるかに注目するのがコツよ。ずんだもん、この区間の中心の座標はどうやって求めればいいかしら？」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$-2x < -a - 2$$\n\n$$x > \\frac{a+2}{2}$$",
-      "fontSize": 64,
-      "animation": "none"
-    },
     "voiceFile": "09_metan.wav",
-    "durationInFrames": 113
+    "durationInFrames": 609
   },
   {
     "id": 10,
-    "character": "metan",
-    "text": "この範囲に「整数 $x$ がちょうど5個」入ればいいの。さて、ずんだもん。数直線をイメージして、$3$ より小さい整数を大きい順に5個書き出してみてくれる？",
+    "character": "zundamon",
+    "text": "「真ん中……？ 端と端を足して、$2$ で割ればいいのだ？」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$\\frac{a+2}{2} < x < 3$$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
-    "voiceFile": "10_metan.wav",
-    "durationInFrames": 420
+    "voiceFile": "10_zundamon.wav",
+    "durationInFrames": 138
   },
   {
     "id": 11,
-    "character": "zundamon",
-    "text": "$3$ は含まないから…… $2, 1, 0, -1, -2$ の5個なのだ！",
+    "character": "metan",
+    "text": "「その通り！ じゃあ、計算してみて。」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$\\frac{a+2}{2} < x < 3$$\n\n解に含まれる整数は\n$2, 1, 0, -1, -2$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
-    "voiceFile": "11_zundamon.wav",
-    "durationInFrames": 261
+    "voiceFile": "11_metan.wav",
+    "durationInFrames": 101
   },
   {
     "id": 12,
-    "character": "metan",
-    "text": "そう。その5個が範囲に含まれて、次の $-3$ は含まれないようにすればいいのね。境界線の $\\frac{a+2}{2}$ は、数直線のどこにあればいいかしら？",
+    "character": "zundamon",
+    "text": "「やってみるのだ！ 左端の $\\frac{3 - a}{2}$ と右端の $\\frac{3 + a}{2}$ を足すと…… $a$ が消えて $\\frac{6}{2} = 3$ になるのだ。それをさらに $2$ で割るから、中心は $1.5$ なのだ！」$$\\text{中心} = \\frac{ \\frac{3 - a}{2} + \\frac{3 + a}{2} }{2} = \\frac{3}{2} = 1.5$$",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$\\frac{a+2}{2} < x < 3$$\n\n解に含まれる整数は\n$2, 1, 0, -1, -2$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
-    "voiceFile": "12_metan.wav",
-    "durationInFrames": 422
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$$\\text{中心} = \\frac{ \\frac{3 - a}{2} + \\frac{3 + a}{2} }{2} = \\frac{3}{2} = 1.5$$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
+    "voiceFile": "12_zundamon.wav",
+    "durationInFrames": 525
   },
   {
     "id": 13,
-    "character": "zundamon",
-    "text": "えーっと、$-2$ と $-3$ の間にあればいいのだ。……でも、どっちに「イコール」がつくのか分からなくなるのだ。",
+    "character": "metan",
+    "text": "「素晴らしいわ！ つまり、この不等式の範囲は『 $1.5$ を中心にして、左右に同じだけ広がっている』ということよ。」\n3️⃣ 中心から近い順に整数をカウントする",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "image",
-      "src": "CleanShot 2026-05-12 at 15.40.33@2x.png",
-      "animation": "fadeIn"
-    },
-    "voiceFile": "13_zundamon.wav",
-    "durationInFrames": 317
+    "voiceFile": "13_metan.wav",
+    "durationInFrames": 383
   },
   {
     "id": 14,
     "character": "metan",
-    "text": "そこが一番のポイントね。もし $\\frac{a+2}{2}$ がぴったり $-2$ だったら、不等式は $x > -2$ になるわね。そのとき、整数 $-2$ は範囲に含まれるかしら？",
-    "displayText": "境界がぴったり -2 だったら、x > -2 になるわね。\n整数 -2 は含まれるかしら？",
+    "text": "「じゃあ、中心の $1.5$ から近い順番に、整数を拾ってみましょう。まずは一番近い整数は何と何かしら？」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "image",
-      "src": "CleanShot 2026-05-12 at 15.41.46@2x.png",
-      "animation": "fadeIn"
-    },
     "voiceFile": "14_metan.wav",
-    "durationInFrames": 493
+    "durationInFrames": 263
   },
   {
     "id": 15,
     "character": "zundamon",
-    "text": "含まれないのだ！ $x > -2$ だと、一番小さい整数は $-1$ になっちゃうのだ。それだと整数が4個しかないから、ダメなのだ。",
+    "text": "「$1.5$ のすぐ隣だから……左が $1$ で、右が $2$ なのだ！」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "image",
-      "src": "CleanShot 2026-05-12 at 15.41.46@2x.png",
-      "animation": "fadeIn"
-    },
     "voiceFile": "15_zundamon.wav",
-    "durationInFrames": 378
+    "durationInFrames": 148
   },
   {
     "id": 16,
     "character": "metan",
-    "text": "鋭いわね。じゃあ、$\\frac{a+2}{2}$ がぴったり $-3$ だったら？ $x > -3$ のとき、整数 $-2$ は含まれる？",
+    "text": "「そう！ その次は？」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "image",
-      "src": "CleanShot 2026-05-12 at 15.42.34@2x.png",
-      "animation": "fadeIn"
-    },
     "voiceFile": "16_metan.wav",
-    "durationInFrames": 402
+    "durationInFrames": 56
   },
   {
     "id": 17,
     "character": "zundamon",
-    "text": "含まれるのだ！ $x > -3$ なら、整数は $-2, -1, 0, 1, 2$ の5個でぴったりなのだ。……あ！ ということは、$\\frac{a+2}{2}$ は $-3$ になってもいいけど、$-2$ になっちゃダメってことなのだ？",
-    "displayText": "x > -3 なら整数5個でぴったりなのだ！\n境界は -3 はOKだけど -2 はダメってこと？",
+    "text": "「左が $0$ で、右が $3$ なのだ。どんどん広がっていくのだ！」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "image",
-      "src": "CleanShot 2026-05-12 at 15.42.34@2x.png",
-      "animation": "fadeIn"
-    },
     "voiceFile": "17_zundamon.wav",
-    "durationInFrames": 716
+    "durationInFrames": 146
   },
   {
     "id": 18,
     "character": "metan",
-    "text": "その通り。それを不等式で表すとどうなるかしら？",
+    "text": "「いいわね。それじゃあ、ここで情報を整理して数直線を書いてみましょう。整数が『ちょうど6個』になるには、どこまで範囲に入ればいいかしら？」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "image",
-      "src": "CleanShot 2026-05-12 at 15.42.34@2x.png",
-      "animation": "fadeIn"
-    },
     "voiceFile": "18_metan.wav",
-    "durationInFrames": 113
+    "durationInFrames": 322
   },
   {
     "id": 19,
     "character": "zundamon",
-    "text": "こうなのだ！",
+    "text": "「数直線を見ると一目瞭然なのだ！ ちょうど6個になるためには、『 $-1$ から $4$ までの整数 』が入っていればいいのだ。そして、『 $-2$ と $5$ 』は入っちゃダメなのだ！」\n4️⃣ 端の数の条件を不等式にする",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$-3 \\le \\frac{a+2}{2} < -2$$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
     "voiceFile": "19_zundamon.wav",
-    "durationInFrames": 31
+    "durationInFrames": 535
   },
   {
     "id": 20,
     "character": "metan",
-    "text": "完璧よ！ あとはこれを $a$ について解くだけね。",
+    "text": "「その気づきが一番重要よ！ 今回は右側の端っこである $\\frac{3 + a}{2}$ に注目して考えてみましょう。この右端は、数直線上でどの数字とどの数字の間に来ればいいかしら？」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$-3 \\le \\frac{a+2}{2} < -2$$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$\\frac{3 + a}{2}$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
     "voiceFile": "20_metan.wav",
-    "durationInFrames": 129
+    "durationInFrames": 430
   },
   {
     "id": 21,
     "character": "zundamon",
-    "text": "全部に $2$ をかけて……最後に $2$ を引いて……できたのだ！ めたん先生、僕にも解けたのだ！",
+    "text": "「右側には $4$ は入れたくて、$5$ は入れたくないから……右端は $4$ と $5$ の間にある必要があるのだ！」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$-6 \\le a + 2 < -4$$\n$$-8 \\le a < -6$$",
-      "fontSize": 64,
-      "animation": "fadeIn"
-    },
     "voiceFile": "21_zundamon.wav",
-    "durationInFrames": 289
+    "durationInFrames": 231
   },
   {
     "id": 22,
     "character": "metan",
-    "text": "ふふ、よく頑張ったわね。数直線をかいて、境界線の値が含まれるかどうかを一つずつ確認するのが、ミスをしないコツよ。",
+    "text": "「大正解！ じゃあ、それを不等式で表すわよ。等号（ $\\leqq$ ）の扱いに気をつけてね。端っこが含まれる（黒丸の）不等式だから、右端がピッタリ $4$ の時と、ピッタリ $5$ の時、それぞれ条件を満たすかしら？」",
     "scene": 1,
     "pauseAfter": 6,
-    "visual": {
-      "type": "text",
-      "text": "$$-6 \\le a + 2 < -4$$\n$$-8 \\le a < -6$$",
-      "fontSize": 64,
-      "animation": "slideLeft"
-    },
     "voiceFile": "22_metan.wav",
-    "durationInFrames": 272
+    "durationInFrames": 496
+  },
+  {
+    "id": 23,
+    "character": "zundamon",
+    "text": "「ええっと……。もし右端がピッタリ $4$ だと、 $\\leqq$ の範囲だから $4$ もちゃんと含まれるのだ。これはOKなのだ！でも、ピッタリ $5$ になっちゃうと、$5$ も範囲に入っちゃって整数が7個（左の $-2$ も入るから合計8個）になっちゃうからダメなのだ。だから、$4$ の方にはイコールをつけて、$5$ の方にはつけないのだ！」",
+    "scene": 1,
+    "pauseAfter": 6,
+    "voiceFile": "23_zundamon.wav",
+    "durationInFrames": 743
+  },
+  {
+    "id": 24,
+    "character": "metan",
+    "text": "「完璧な考察ね。その通りよ。よって、立てるべき不等式はこうなるわ。」$$4 \\leqq \\frac{3 + a}{2} < 5$$",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$$4 \\leqq \\frac{3 + a}{2} < 5$$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
+    "voiceFile": "24_metan.wav",
+    "durationInFrames": 174
+  },
+  {
+    "id": 25,
+    "character": "zundamon",
+    "text": "「あとはこの不等式を解くだけなのだ！ 全部を $2$ 倍して……」$$8 \\leqq 3 + a < 10$$",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$$8 \\leqq 3 + a < 10$$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
+    "voiceFile": "25_zundamon.wav",
+    "durationInFrames": 134
+  },
+  {
+    "id": 26,
+    "character": "zundamon",
+    "text": "「真ん中を $a$ だけにするために、全部から $3$ を引くのだ！」$$5 \\leqq a < 7 \\quad \\cdots \\text{（答え）}$$",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$$5 \\leqq a < 7 \\quad \\cdots \\text{（答え）}$$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
+    "voiceFile": "26_zundamon.wav",
+    "durationInFrames": 136
+  },
+  {
+    "id": 27,
+    "character": "metan",
+    "text": "「お見事！ これが求める $a$ の値の範囲よ。（ちなみに左端の $\\frac{3-a}{2}$ が $-2 < \\frac{3-a}{2} \\leqq -1$ になる条件で解いても、全く同じ答えになるわよ）区間の中心を求めて、そこから整数がどう配置されているか可視化すると、複雑な条件もスッキリ解けるわね。」",
+    "scene": 1,
+    "pauseAfter": 6,
+    "visuals": [
+      {
+        "type": "text",
+        "text": "$\\frac{3-a}{2}$\n\n$-2 < \\frac{3-a}{2} \\leqq -1$",
+        "fontSize": 64,
+        "animation": "fadeIn"
+      }
+    ],
+    "voiceFile": "27_metan.wav",
+    "durationInFrames": 698
+  },
+  {
+    "id": 28,
+    "character": "zundamon",
+    "text": "「『中心から広げていくイメージ』を持てば、文字が入っていても全然怖くないのだ！ 今日も一つ賢くなったのだ！」",
+    "scene": 1,
+    "pauseAfter": 6,
+    "voiceFile": "28_zundamon.wav",
+    "durationInFrames": 273
   }
 ];
 

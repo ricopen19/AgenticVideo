@@ -17,14 +17,15 @@ export interface ScriptLine {
   durationInFrames?: number;
   pauseAfter: number;
   emotion?: string;
-  visual?: {
-    type: "image" | "text" | "none";
+  visuals?: Array<{
+    type: "image" | "video" | "text" | "none";
     src?: string;
+    startFrom?: number;
     text?: string;
     fontSize?: number;
     color?: string;
     animation?: string;
-  };
+  }>;
   se?: {
     src: string;
     volume?: number;
@@ -124,7 +125,7 @@ export function createScriptLine(data: Omit<ScriptLine, 'id'>): ScriptLine {
   // Add optional fields if present
   if (data.displayText) newLine.displayText = data.displayText;
   if (data.emotion) newLine.emotion = data.emotion;
-  if (data.visual) newLine.visual = data.visual;
+  if (data.visuals) newLine.visuals = data.visuals;
   if (data.se) newLine.se = data.se;
 
   script.push(newLine);
@@ -152,6 +153,75 @@ export function deleteScriptLine(id: number): void {
   // Write back to YAML
   const yamlContent = yaml.stringify(script, { lineWidth: 0 });
   fs.writeFileSync(SCRIPT_YAML_PATH, `# スクリプトデータ\n# 編集後 npm run sync-script で反映\n\n${yamlContent}`);
+}
+
+export function bulkImportLines(
+  lines: Array<{ character: string; text: string }>,
+  mode: 'replace' | 'append'
+): ScriptLine[] {
+  const defaults = loadDefaults();
+  const durations = loadDurations();
+
+  let existingScript: ScriptLine[] = [];
+  if (mode === 'append') {
+    const content = fs.readFileSync(SCRIPT_YAML_PATH, 'utf-8');
+    existingScript = yaml.parse(content) || [];
+  }
+
+  const startId = mode === 'replace' ? 1 : Math.max(0, ...existingScript.map(l => l.id)) + 1;
+  const newLines: ScriptLine[] = lines.map((line, i) => ({
+    id: startId + i,
+    character: line.character,
+    text: line.text,
+    scene: defaults.newLine.scene,
+    pauseAfter: defaults.newLine.pauseAfter,
+  }));
+
+  const finalScript = mode === 'replace' ? newLines : [...existingScript, ...newLines];
+  const yamlContent = yaml.stringify(finalScript, { lineWidth: 0 });
+  fs.writeFileSync(SCRIPT_YAML_PATH, `# スクリプトデータ\n# 編集後 npm run sync-script で反映\n\n${yamlContent}`);
+
+  return finalScript.map(line => processLine(line, defaults, durations));
+}
+
+// SceneVisuals.tsx と同じ抽出ルール（サーバー側コピー）
+function extractMathFromText(text: string): NonNullable<ScriptLine['visuals']>[number] | undefined {
+  const displayMatches = [...text.matchAll(/\$\$([^$]+)\$\$/g)].map(m => `$$${m[1]}$$`);
+  if (displayMatches.length > 0) {
+    return { type: 'text', text: displayMatches.join('\n\n'), fontSize: 64, animation: 'fadeIn' };
+  }
+  const inlineMatches = [...text.matchAll(/\$([^$\n]+)\$/g)]
+    .filter(([, inner]) => inner.length > 7 && (/\{/.test(inner) || /[+\-=]/.test(inner)))
+    .map(([, inner]) => `$${inner}$`);
+  if (inlineMatches.length === 0) return undefined;
+  return { type: 'text', text: inlineMatches.join('\n\n'), fontSize: 64, animation: 'fadeIn' };
+}
+
+export function applyAutoVisuals(): { script: ScriptLine[]; applied: number } {
+  const content = fs.readFileSync(SCRIPT_YAML_PATH, 'utf-8');
+  const script: ScriptLine[] = yaml.parse(content) || [];
+  const defaults = loadDefaults();
+  const durations = loadDurations();
+
+  let applied = 0;
+  const updated = script.map(line => {
+    // explicit visuals が設定済みの行はスキップ（上書きしない）
+    if (line.visuals !== undefined) return line;
+    const extracted = extractMathFromText(line.text);
+    if (!extracted) return line;
+    applied++;
+    return { ...line, visuals: [extracted] };
+  });
+
+  if (applied > 0) {
+    const yamlContent = yaml.stringify(updated, { lineWidth: 0 });
+    fs.writeFileSync(SCRIPT_YAML_PATH, `# スクリプトデータ\n# 編集後 npm run sync-script で反映\n\n${yamlContent}`);
+  }
+
+  return {
+    script: updated.map(line => processLine(line, defaults, durations)),
+    applied,
+  };
 }
 
 export function reorderScript(ids: number[]): ScriptLine[] {

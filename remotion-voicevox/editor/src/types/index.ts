@@ -3,8 +3,9 @@ export type AnimationType = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomI
 
 // ビジュアルの型定義
 export interface VisualContent {
-  type: "image" | "text" | "none";
+  type: "image" | "video" | "text" | "none";
   src?: string;
+  startFrom?: number;
   text?: string;
   fontSize?: number;
   color?: string;
@@ -35,7 +36,7 @@ export interface ScriptLine {
   durationInFrames: number;
   pauseAfter: number;
   emotion?: string;
-  visual?: VisualContent;
+  visuals?: VisualContent[];
   se?: SoundEffect;
 }
 
@@ -44,6 +45,7 @@ export interface CharacterInfo {
   id: string;
   name: string;
   speakerId: number | null;
+  color: string;
 }
 
 // メタデータ
