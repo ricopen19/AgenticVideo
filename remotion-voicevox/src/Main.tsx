@@ -33,6 +33,7 @@ const getEffectiveVisuals = (lines: typeof scriptData, currentId: number) => {
       }
     }
   }
+  result.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   return result.length > 0 ? result : undefined;
 };
 

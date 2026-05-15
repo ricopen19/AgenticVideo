@@ -27,6 +27,7 @@ export interface ScriptLine {
     animation?: string;
     lineFrom?: number;
     lineTo?: number;
+    order?: number;
   }>;
   se?: {
     src: string;

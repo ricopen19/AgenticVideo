@@ -217,7 +217,7 @@ export function ScriptEditor({ line, metadata, isNew, onSave, onClose }: ScriptE
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">
                       表示開始行 ID <span className="text-gray-400">（省略 = この行）</span>
@@ -245,6 +245,21 @@ export function ScriptEditor({ line, metadata, isNew, onSave, onClose }: ScriptE
                         updateVisual(i, 'lineTo', val);
                       }}
                       placeholder="例: 20"
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      表示順 <span className="text-gray-400">（小 = 背面）</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={v.order ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                        updateVisual(i, 'order', val);
+                      }}
+                      placeholder="0"
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                     />
                   </div>

@@ -423,7 +423,7 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-3 gap-2 mb-3">
             <div>
               <label className="block text-xs text-gray-500 mb-1">開始行 ID</label>
               <input
@@ -441,6 +441,16 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
                 value={pinEdits.lineTo ?? ''}
                 onChange={e => setPinEdits({ ...pinEdits, lineTo: e.target.value === '' ? undefined : parseInt(e.target.value, 10) })}
                 placeholder={String(line.id)}
+                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">表示順</label>
+              <input
+                type="number"
+                value={pinEdits.order ?? ''}
+                onChange={e => setPinEdits({ ...pinEdits, order: e.target.value === '' ? undefined : parseInt(e.target.value, 10) })}
+                placeholder="0"
                 className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
               />
             </div>

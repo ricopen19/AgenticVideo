@@ -34,6 +34,7 @@ interface ScriptLine {
     animation?: string;
     lineFrom?: number;
     lineTo?: number;
+    order?: number;
   }>;
   se?: {
     src: string;
@@ -130,6 +131,7 @@ export interface VisualContent {
   svg?: string;
   lineFrom?: number;
   lineTo?: number;
+  order?: number;
 }
 
 // 効果音の型定義

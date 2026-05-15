@@ -12,6 +12,7 @@ export interface VisualContent {
   animation?: AnimationType;
   lineFrom?: number;
   lineTo?: number;
+  order?: number;
 }
 
 export interface TimelineSegment {
