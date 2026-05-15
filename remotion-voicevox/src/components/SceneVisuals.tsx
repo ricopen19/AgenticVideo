@@ -64,7 +64,7 @@ const getAnimationStyle = (
 };
 
 // 単一ビジュアルの描画（アニメーション付き）
-const VisualItem: React.FC<{ visual: VisualContent; frame: number; fps: number }> = ({ visual, frame, fps }) => {
+const VisualItem: React.FC<{ visual: VisualContent; frame: number; fps: number; scaledFontSize: (base: number) => number }> = ({ visual, frame, fps, scaledFontSize }) => {
   const animStyle = getAnimationStyle(frame, fps, visual.animation);
 
   if (visual.type === "text" && visual.text) {
@@ -72,7 +72,7 @@ const VisualItem: React.FC<{ visual: VisualContent; frame: number; fps: number }
       <div
         style={{
           ...animStyle,
-          fontSize: visual.fontSize || 64,
+          fontSize: scaledFontSize(visual.fontSize || 64),
           fontWeight: "bold",
           color: visual.color || COLORS.text,
           textAlign: "center",
@@ -152,15 +152,18 @@ export const SceneVisuals: React.FC<SceneVisualsProps> = ({
   visuals,
   lineText,
 }) => {
-  // explicit visuals が空なら auto-extract を試みる
-  const effectiveVisuals: VisualContent[] =
-    visuals && visuals.length > 0
-      ? visuals.filter((v) => v.type !== "none")
-      : lineText
-        ? (() => { const v = extractMathFromText(lineText); return v ? [v] : []; })()
-        : [];
+  // explicit visuals のみ使用（auto-extract は行わない）
+  const effectiveVisuals: VisualContent[] = visuals
+    ? visuals.filter((v) => v.type !== "none")
+    : [];
 
   if (effectiveVisuals.length === 0) return null;
+
+  // ピン数に応じて fontSize・gap を縮小（はみ出し防止）
+  const n = effectiveVisuals.length;
+  const scaledFontSize = (base: number) =>
+    n >= 4 ? Math.min(base, 36) : n === 3 ? Math.min(base, 46) : n === 2 ? Math.min(base, 54) : base;
+  const gap = n >= 4 ? 12 : n === 3 ? 18 : n === 2 ? 28 : 0;
 
   // コンテンツコンテナ（黒板内に収まるよう調整）
   const containerStyle: React.CSSProperties = {
@@ -173,13 +176,14 @@ export const SceneVisuals: React.FC<SceneVisualsProps> = ({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: effectiveVisuals.length > 1 ? 32 : 0,
+    gap,
+    overflow: "hidden",
   };
 
   return (
     <div style={containerStyle}>
       {effectiveVisuals.map((visual, i) => (
-        <VisualItem key={i} visual={visual} frame={frame} fps={fps} />
+        <VisualItem key={i} visual={visual} frame={frame} fps={fps} scaledFontSize={scaledFontSize} />
       ))}
     </div>
   );
