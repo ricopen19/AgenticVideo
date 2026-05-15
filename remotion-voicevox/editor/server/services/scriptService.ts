@@ -95,7 +95,16 @@ export function updateScriptLine(id: number, data: Partial<ScriptLine>): ScriptL
 
   // Update only allowed fields (don't store computed fields)
   const { voiceFile, durationInFrames, ...updateData } = data;
-  script[index] = { ...script[index], ...updateData, id };
+  const merged = { ...script[index] };
+  for (const [key, val] of Object.entries(updateData)) {
+    if (val === null) {
+      delete (merged as Record<string, unknown>)[key];
+    } else {
+      (merged as Record<string, unknown>)[key] = val;
+    }
+  }
+  merged.id = id;
+  script[index] = merged as ScriptLine;
 
   // Write back to YAML
   const yamlContent = yaml.stringify(script, { lineWidth: 0 });

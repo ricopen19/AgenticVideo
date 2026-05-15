@@ -20,7 +20,8 @@ export const scriptApi = {
     const res = await fetch(`${API_BASE}/script/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      // undefined は JSON.stringify で消えるため null に変換して送信
+      body: JSON.stringify(data, (_, v) => v === undefined ? null : v),
     });
     if (!res.ok) throw new Error('Failed to update script line');
     return res.json();
@@ -50,6 +51,16 @@ export const scriptApi = {
       body: JSON.stringify({ ids }),
     });
     if (!res.ok) throw new Error('Failed to reorder script');
+    return res.json();
+  },
+
+  async bulk(lines: Array<{ character: string; text: string }>, mode: 'replace' | 'append'): Promise<ScriptLine[]> {
+    const res = await fetch(`${API_BASE}/script/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lines, mode }),
+    });
+    if (!res.ok) throw new Error('Failed to bulk import');
     return res.json();
   },
 };

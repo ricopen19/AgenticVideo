@@ -104,7 +104,26 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
   return (
     <tr className="group hover:bg-gray-50 cursor-pointer" onClick={onEdit}>
       <td className="px-2 py-2 text-sm text-gray-500">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
+          {/* ↑↓ ホバー時に左端に表示 */}
+          <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+              disabled={index === 0}
+              className="w-4 h-3.5 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded text-xs leading-none disabled:opacity-20 disabled:cursor-not-allowed"
+              title="上に移動"
+            >
+              ▴
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+              disabled={index === totalLines - 1}
+              className="w-4 h-3.5 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded text-xs leading-none disabled:opacity-20 disabled:cursor-not-allowed"
+              title="下に移動"
+            >
+              ▾
+            </button>
+          </div>
           <button
             onClick={playVoice}
             className={`w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 ${isPlaying ? 'text-blue-600' : 'text-gray-400'}`}
@@ -112,7 +131,7 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
           >
             {isPlaying ? '■' : '▶'}
           </button>
-          <span className="w-6 text-right">{line.id}</span>
+          <span className="w-5 text-right">{line.id}</span>
         </div>
       </td>
       <td className="px-2 py-2" onClick={toggleCharacter}>
@@ -219,24 +238,8 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
           >
             ✕
           </button>
-          {/* ホバー時に表示: ↑ ↓ ＋ 📌↓ */}
+          {/* ホバー時に表示: ＋ 📌↓ */}
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={onMoveUp}
-              disabled={index === 0}
-              className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed"
-              title="上に移動"
-            >
-              ↑
-            </button>
-            <button
-              onClick={onMoveDown}
-              disabled={index === totalLines - 1}
-              className="px-1.5 py-0.5 text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed"
-              title="下に移動"
-            >
-              ↓
-            </button>
             <button
               onClick={onInsertBelow}
               className="px-1.5 py-0.5 text-xs text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded"
