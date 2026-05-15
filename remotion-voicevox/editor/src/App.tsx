@@ -10,8 +10,9 @@ import { useMetadata } from './hooks/useMetadata';
 function App() {
   const [currentTab, setCurrentTab] = useState<'script' | 'settings'>('script');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isApplyingVisuals, setIsApplyingVisuals] = useState(false);
 
-  const { script, loading: scriptLoading, error: scriptError, updateLine, createLine, deleteLine, refresh: refreshScript } = useScript();
+  const { script, loading: scriptLoading, error: scriptError, updateLine, createLine, deleteLine, moveUp, moveDown, insertAt, bulkImport, refresh: refreshScript } = useScript();
   const { settings, loading: settingsLoading, error: settingsError, updateSettings, refresh: refreshSettings } = useSettings();
   const { metadata, loading: metadataLoading } = useMetadata();
 
@@ -31,6 +32,21 @@ function App() {
       alert(err instanceof Error ? err.message : 'Failed to generate voices');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleApplyVisuals = async () => {
+    setIsApplyingVisuals(true);
+    try {
+      const res = await fetch('/api/actions/apply-visuals', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to apply visuals');
+      const result = await res.json();
+      alert(result.message);
+      refreshScript();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to apply visuals');
+    } finally {
+      setIsApplyingVisuals(false);
     }
   };
 
@@ -65,14 +81,16 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <Header currentTab={currentTab} onTabChange={setCurrentTab} />
       <div className="flex flex-1">
         <Sidebar
           onPreview={handlePreview}
           onGenerateVoices={handleGenerateVoices}
           onBuildVideo={handleBuildVideo}
+          onApplyVisuals={handleApplyVisuals}
           isGenerating={isGenerating}
+          isApplyingVisuals={isApplyingVisuals}
         />
         <main className="flex-1 p-6 overflow-auto">
           {currentTab === 'script' && metadata && (
@@ -82,6 +100,10 @@ function App() {
               onUpdate={updateLine}
               onCreate={createLine}
               onDelete={deleteLine}
+              onMoveUp={moveUp}
+              onMoveDown={moveDown}
+              onInsertAt={insertAt}
+              onBulkImport={bulkImport}
             />
           )}
           {currentTab === 'settings' && settings && (

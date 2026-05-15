@@ -1,7 +1,26 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import Latex from 'react-latex-next';
-import type { ScriptLine, CharacterInfo } from '../../types';
+import type { ScriptLine, CharacterInfo, TimelineSegment } from '../../types';
+
+const PIN_STYLES: Record<string, { badge: string; label: string; muted: string }> = {
+  text:     { badge: 'bg-amber-100 text-amber-600', label: '',              muted: 'text-amber-400' },
+  'svg-file': { badge: 'bg-sky-100 text-sky-700',   label: 'text-sky-500',  muted: 'text-sky-400' },
+  image:    { badge: 'bg-sky-100 text-sky-700',     label: 'text-sky-500',  muted: 'text-sky-400' },
+  video:    { badge: 'bg-violet-100 text-violet-700', label: 'text-violet-500', muted: 'text-violet-400' },
+};
+
+const PIN_TYPE_LABELS: Record<string, string | undefined> = {
+  'svg-file': 'SVG',
+  image: 'IMG',
+  video: 'VID',
+  text: 'TXT',
+};
+
+const TRACK_WIDTH = 56;
+const TYPE_LABELS: Record<string, string> = {
+  'svg-file': 'SVG', image: 'IMG', video: 'VID', text: 'TXT',
+};
 
 interface ScriptRowProps {
   line: ScriptLine;
@@ -15,9 +34,11 @@ interface ScriptRowProps {
   onInsertBelow: () => void;
   onQuickUpdate: (field: keyof ScriptLine, value: unknown) => void;
   onPushVisualsDown?: () => void;
+  timelineSegments?: TimelineSegment[];
+  timelineWidth: number;
 }
 
-export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelete, onMoveUp, onMoveDown, onInsertBelow, onQuickUpdate, onPushVisualsDown }: ScriptRowProps) {
+export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelete, onMoveUp, onMoveDown, onInsertBelow, onQuickUpdate, onPushVisualsDown, timelineSegments, timelineWidth }: ScriptRowProps) {
   const [editingField, setEditingField] = useState<'pauseAfter' | 'text' | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -168,46 +189,104 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
             {/* ピンバッジ（複数対応） */}
             {visuals.length > 0 && (
               <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                {visuals.filter(v => v.type !== 'none').map((_v, i) => (
-                  <span
-                    key={i}
-                    ref={el => { pinRefs.current[i] = el; }}
-                    className="relative inline-flex items-center gap-0.5 text-xs px-1 py-0.5 bg-amber-100 text-amber-600 rounded cursor-default"
-                    onMouseEnter={() => {
-                      setHoveredPinIdx(i);
-                      const rect = pinRefs.current[i]?.getBoundingClientRect();
-                      if (rect) setPinPreview({ idx: i, x: rect.left, y: rect.bottom + 6 });
-                    }}
-                    onMouseLeave={() => {
-                      setHoveredPinIdx(null);
-                      setPinPreview(null);
-                    }}
-                  >
-                    📌{visuals.length > 1 ? <sup>{i + 1}</sup> : null}
-                    <button
-                      onClick={(e) => removeVisual(e, i)}
-                      style={{ opacity: hoveredPinIdx === i ? 1 : 0, transition: 'opacity 0.1s' }}
-                      className="ml-0.5 text-amber-400 hover:text-red-500 leading-none text-xs"
-                      title="ピンを削除"
+                {visuals.filter(v => v.type !== 'none').map((_v, i) => {
+                  const pinStyle = PIN_STYLES[_v.type] ?? PIN_STYLES.text;
+                  const typeLabel = PIN_TYPE_LABELS[_v.type];
+                  return (
+                    <span
+                      key={i}
+                      ref={el => { pinRefs.current[i] = el; }}
+                      className={`relative inline-flex items-center gap-0.5 text-xs px-1 py-0.5 rounded cursor-default ${pinStyle.badge}`}
+                      title={_v.lineTo ? `行 ${line.id} → ${_v.lineTo} まで表示` : undefined}
+                      onMouseEnter={() => {
+                        setHoveredPinIdx(i);
+                        const rect = pinRefs.current[i]?.getBoundingClientRect();
+                        if (rect) setPinPreview({ idx: i, x: rect.left, y: rect.bottom + 6 });
+                      }}
+                      onMouseLeave={() => {
+                        setHoveredPinIdx(null);
+                        setPinPreview(null);
+                      }}
                     >
-                      ×
-                    </button>
-                  </span>
-                ))}
+                      📌
+                      {typeLabel && <span className={`font-mono font-bold ${pinStyle.label}`}>{typeLabel}</span>}
+                      {visuals.length > 1 ? <sup>{i + 1}</sup> : null}
+                      {(_v.lineFrom != null || _v.lineTo != null) ? (
+                        <span className={`ml-0.5 text-xs ${pinStyle.muted}`}>
+                          {_v.lineFrom != null ? `${_v.lineFrom}` : ''}→{_v.lineTo != null ? `${_v.lineTo}` : ''}
+                        </span>
+                      ) : null}
+                      <button
+                        onClick={(e) => removeVisual(e, i)}
+                        style={{ opacity: hoveredPinIdx === i ? 1 : 0, transition: 'opacity 0.1s' }}
+                        className={`ml-0.5 hover:text-red-500 leading-none text-xs ${pinStyle.muted}`}
+                        title="ピンを削除"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             )}
-            {/* KaTeX ツールチップ */}
-            {pinPreview !== null && visuals[pinPreview.idx]?.type === 'text' && visuals[pinPreview.idx]?.text && createPortal(
-              <div
-                style={{ position: 'fixed', left: pinPreview.x, top: pinPreview.y, zIndex: 9999 }}
-                className="bg-gray-900 text-white rounded-lg px-4 py-3 shadow-2xl max-w-lg text-base pointer-events-none"
-              >
-                <Latex>{visuals[pinPreview.idx].text!}</Latex>
-              </div>,
-              document.body
-            )}
+            {/* ピン プレビュー（ホバー） */}
+            {pinPreview !== null && (() => {
+              const v = visuals[pinPreview.idx];
+              if (!v) return null;
+              if (v.type === 'text' && v.text) return createPortal(
+                <div style={{ position: 'fixed', left: pinPreview.x, top: pinPreview.y, zIndex: 9999 }}
+                  className="bg-gray-900 text-white rounded-lg px-4 py-3 shadow-2xl max-w-lg text-base pointer-events-none">
+                  <Latex>{v.text}</Latex>
+                </div>,
+                document.body
+              );
+              if ((v.type === 'svg-file' || v.type === 'image') && v.src) return createPortal(
+                <div style={{ position: 'fixed', left: pinPreview.x, top: pinPreview.y, zIndex: 9999, background: '#3a5f3a', borderRadius: 8, padding: 8, boxShadow: '0 4px 24px rgba(0,0,0,0.6)' }}
+                  className="pointer-events-none">
+                  <img src={`/static/content/${v.src}`} width={420} style={{ display: 'block' }} />
+                </div>,
+                document.body
+              );
+              return null;
+            })()}
           </div>
         )}
+      </td>
+      <td className="px-0 py-0 align-middle" style={{ width: timelineWidth, minWidth: timelineWidth }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ position: 'relative', height: 40, width: timelineWidth }}>
+          {(timelineSegments ?? []).map((seg, i) => {
+            const cx = seg.trackIdx * TRACK_WIDTH + TRACK_WIDTH / 2;
+            const label = TYPE_LABELS[seg.visualType] ?? seg.visualType.slice(0, 3).toUpperCase();
+            return (
+              <Fragment key={i}>
+                {/* top-half line (for middle and end) */}
+                {(seg.role === 'middle' || seg.role === 'end') && (
+                  <div style={{ position: 'absolute', left: cx - 1, top: 0, height: seg.role === 'end' ? 'calc(50% - 11px)' : '50%', width: 2, background: seg.color, opacity: 0.75 }} />
+                )}
+                {/* arrowhead pointing down (for end) */}
+                {seg.role === 'end' && (
+                  <div style={{ position: 'absolute', left: cx - 4, top: 'calc(50% - 11px)', width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: `6px solid ${seg.color}`, opacity: 0.75 }} />
+                )}
+                {/* bottom-half line (for start and middle) */}
+                {(seg.role === 'start' || seg.role === 'middle') && (
+                  <div style={{ position: 'absolute', left: cx - 1, top: seg.role === 'start' ? 'calc(50% + 11px)' : '50%', height: seg.role === 'start' ? 'calc(50% - 11px)' : '50%', width: 2, background: seg.color, opacity: 0.75 }} />
+                )}
+                {/* start / single badge */}
+                {(seg.role === 'start' || seg.role === 'single') && (
+                  <div style={{ position: 'absolute', left: cx, top: '50%', transform: 'translate(-50%, -50%)', zIndex: 2, display: 'inline-flex', alignItems: 'center', gap: 2, border: `1.5px solid ${seg.color}`, borderRadius: 4, padding: '1px 5px', background: `${seg.color}22`, fontSize: 10, fontWeight: 700, color: seg.color, whiteSpace: 'nowrap', lineHeight: '1.4' }}>
+                    <span style={{ fontSize: 9 }}>📌</span><span>{label}</span>
+                  </div>
+                )}
+                {/* end badge (lighter, no pin icon) */}
+                {seg.role === 'end' && (
+                  <div style={{ position: 'absolute', left: cx, top: '50%', transform: 'translate(-50%, -50%)', zIndex: 2, display: 'inline-flex', alignItems: 'center', border: `1.5px solid ${seg.color}`, borderRadius: 4, padding: '1px 5px', background: `${seg.color}11`, fontSize: 10, fontWeight: 600, color: seg.color, whiteSpace: 'nowrap', opacity: 0.65, lineHeight: '1.4' }}>
+                    <span>{label}</span>
+                  </div>
+                )}
+              </Fragment>
+            );
+          })}
+        </div>
       </td>
       <td className="px-2 py-2 text-sm text-gray-400 text-right tabular-nums">
         {line.durationInFrames}

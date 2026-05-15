@@ -32,6 +32,8 @@ interface ScriptLine {
     fontSize?: number;
     color?: string;
     animation?: string;
+    lineFrom?: number;
+    lineTo?: number;
   }>;
   se?: {
     src: string;
@@ -118,20 +120,16 @@ export type AnimationType = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomI
 
 // ビジュアルの型定義
 export interface VisualContent {
-  type: "image" | "video" | "text" | "math-step" | "svg" | "none";
+  type: "image" | "video" | "text" | "math-step" | "svg" | "svg-file" | "none";
   src?: string;
-  startFrom?: number;   // video専用: 再生開始フレーム（省略時は0）
+  startFrom?: number;
   text?: string;
   fontSize?: number;
   color?: string;
   animation?: AnimationType;
-  // math-step専用
-  stepNum?: number;
-  stepColor?: string;
-  formula?: string;
-  hint?: string;
-  // svg専用
   svg?: string;
+  lineFrom?: number;
+  lineTo?: number;
 }
 
 // 効果音の型定義

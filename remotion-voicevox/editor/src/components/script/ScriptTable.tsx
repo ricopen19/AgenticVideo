@@ -1,8 +1,60 @@
 import { useState } from 'react';
-import type { ScriptLine, Metadata } from '../../types';
+import type { ScriptLine, Metadata, TimelineSegment } from '../../types';
 import { ScriptRow } from './ScriptRow';
 import { ScriptEditor } from './ScriptEditor';
 import { ImportModal } from './ImportModal';
+
+const TRACK_WIDTH = 56;
+
+const TRACK_COLORS: Record<string, string> = {
+  text: '#f59e0b',
+  'svg-file': '#38bdf8',
+  image: '#38bdf8',
+  video: '#a78bfa',
+};
+
+function buildTimeline(script: ScriptLine[]): { map: Map<number, TimelineSegment[]>; maxTracks: number } {
+  interface RawSpan { from: number; to: number; type: string; trackIdx: number }
+  const spans: RawSpan[] = [];
+
+  for (const line of script) {
+    if (!line.visuals) continue;
+    for (const v of line.visuals) {
+      if (v.type === 'none') continue;
+      const from = v.lineFrom ?? line.id;
+      const to = v.lineTo ?? from;
+      spans.push({ from, to, type: v.type, trackIdx: 0 });
+    }
+  }
+
+  spans.sort((a, b) => a.from - b.from || a.to - b.to);
+
+  const trackEnds: number[] = [];
+  for (const span of spans) {
+    let t = trackEnds.findIndex(end => end < span.from);
+    if (t === -1) { t = trackEnds.length; trackEnds.push(span.to); }
+    else trackEnds[t] = span.to;
+    span.trackIdx = t;
+  }
+
+  const map = new Map<number, TimelineSegment[]>();
+  for (const span of spans) {
+    const color = TRACK_COLORS[span.type] ?? '#94a3b8';
+    if (span.from === span.to) {
+      if (!map.has(span.from)) map.set(span.from, []);
+      map.get(span.from)!.push({ trackIdx: span.trackIdx, role: 'single', color, visualType: span.type });
+    } else {
+      for (let id = span.from; id <= span.to; id++) {
+        const role: TimelineSegment['role'] =
+          id === span.from ? 'start' : id === span.to ? 'end' : 'middle';
+        if (!map.has(id)) map.set(id, []);
+        map.get(id)!.push({ trackIdx: span.trackIdx, role, color, visualType: span.type });
+      }
+    }
+  }
+
+  return { map, maxTracks: trackEnds.length };
+}
 
 interface ScriptTableProps {
   script: ScriptLine[];
@@ -119,6 +171,9 @@ export function ScriptTable({
     await onUpdate(nextLine.id, { visuals: merged });
   };
 
+  const { map: timelineMap, maxTracks } = buildTimeline(script);
+  const timelineWidth = Math.max(1, maxTracks) * TRACK_WIDTH;
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -146,6 +201,7 @@ export function ScriptTable({
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16"></th>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Char</th>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Text</th>
+              <th className="px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: timelineWidth, minWidth: 20 }}>TL</th>
               <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-14">Dur</th>
               <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-14">Pause</th>
               <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12"></th>
@@ -170,6 +226,8 @@ export function ScriptTable({
                     ? () => handlePushVisualsDown(index)
                     : undefined
                 }
+                timelineSegments={timelineMap.get(line.id)}
+                timelineWidth={timelineWidth}
               />
             ))}
           </tbody>

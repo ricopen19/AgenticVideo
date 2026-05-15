@@ -170,7 +170,10 @@ export function ScriptEditor({ line, metadata, isNew, onSave, onClose }: ScriptE
             {visuals.map((v, i) => (
               <div key={i} className="mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-amber-600">📌{visuals.length > 1 ? ` ${i + 1}` : ''}</span>
+                  <span className="text-xs font-medium text-amber-600">
+                    📌{visuals.length > 1 ? ` ${i + 1}` : ''}
+                    {v.lineTo ? <span className="ml-1 text-amber-500">→ {v.lineTo}</span> : null}
+                  </span>
                   <button
                     type="button"
                     onClick={() => removeVisual(i)}
@@ -206,8 +209,40 @@ export function ScriptEditor({ line, metadata, isNew, onSave, onClose }: ScriptE
                     </select>
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      表示開始行 ID <span className="text-gray-400">（省略 = この行）</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={v.lineFrom ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                        updateVisual(i, 'lineFrom', val);
+                      }}
+                      placeholder="例: 10"
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      表示終了行 ID <span className="text-gray-400">（省略 = この行）</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={v.lineTo ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                        updateVisual(i, 'lineTo', val);
+                      }}
+                      placeholder="例: 20"
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                </div>
 
-                {(v.type === 'image' || v.type === 'video') && (
+                {(v.type === 'image' || v.type === 'video' || v.type === 'svg-file') && (
                   <div className="space-y-2">
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">Source</label>
@@ -215,8 +250,8 @@ export function ScriptEditor({ line, metadata, isNew, onSave, onClose }: ScriptE
                         type="text"
                         value={v.src || ''}
                         onChange={(e) => updateVisual(i, 'src', e.target.value)}
-                        placeholder="filename (in public/content/)"
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                        placeholder={v.type === 'svg-file' ? 'svg/filename.svg' : 'filename (in public/content/)'}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-mono"
                       />
                     </div>
                     {v.type === 'video' && (

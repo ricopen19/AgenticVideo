@@ -27,6 +27,12 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Graceful shutdown — UI stop button kills Express + Vite via concurrently --kill-others
+app.post('/api/shutdown', (_req, res) => {
+  res.json({ message: 'Shutting down...' });
+  setTimeout(() => process.exit(0), 100);
+});
+
 app.listen(PORT, () => {
   console.log(`Script Editor API running on http://localhost:${PORT}`);
 });

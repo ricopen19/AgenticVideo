@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import { applyAutoVisuals } from '../services/scriptService.js';
 
 const execAsync = promisify(exec);
 const ROOT_DIR = path.resolve(process.cwd(), '..');
@@ -53,6 +54,25 @@ actionsRouter.post('/build-video', async (_req: Request, res: Response) => {
     console.error('Error starting video build:', error);
     res.status(500).json({
       error: 'Failed to start video build',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// POST /api/actions/apply-visuals - Auto-extract math from text and write to script.yaml
+actionsRouter.post('/apply-visuals', (_req: Request, res: Response) => {
+  try {
+    const { script, applied } = applyAutoVisuals();
+    res.json({
+      success: true,
+      message: `${applied} 行にビジュアルを設定しました（既存設定はスキップ）`,
+      applied,
+      script,
+    });
+  } catch (error) {
+    console.error('Error applying visuals:', error);
+    res.status(500).json({
+      error: 'Failed to apply visuals',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }

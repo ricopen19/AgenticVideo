@@ -6,6 +6,7 @@ import {
   createScriptLine,
   deleteScriptLine,
   reorderScript,
+  bulkImportLines,
 } from '../services/scriptService.js';
 
 export const scriptRouter = Router();
@@ -18,6 +19,22 @@ scriptRouter.get('/', (_req: Request, res: Response) => {
   } catch (error) {
     console.error('Error getting script:', error);
     res.status(500).json({ error: 'Failed to get script' });
+  }
+});
+
+// POST /api/script/bulk - Bulk import (replace or append)
+scriptRouter.post('/bulk', (req: Request, res: Response) => {
+  try {
+    const { lines, mode } = req.body;
+    if (!Array.isArray(lines) || !['replace', 'append'].includes(mode)) {
+      res.status(400).json({ error: 'Invalid request: lines array and mode (replace|append) required' });
+      return;
+    }
+    const result = bulkImportLines(lines, mode);
+    res.json(result);
+  } catch (error) {
+    console.error('Error bulk importing:', error);
+    res.status(500).json({ error: 'Failed to bulk import' });
   }
 });
 
@@ -34,6 +51,22 @@ scriptRouter.get('/:id', (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error getting script line:', error);
     res.status(500).json({ error: 'Failed to get script line' });
+  }
+});
+
+// PUT /api/script/reorder - Reorder script lines (must be before /:id)
+scriptRouter.put('/reorder', (req: Request, res: Response) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) {
+      res.status(400).json({ error: 'ids must be an array' });
+      return;
+    }
+    const reordered = reorderScript(ids);
+    res.json(reordered);
+  } catch (error) {
+    console.error('Error reordering script:', error);
+    res.status(500).json({ error: 'Failed to reorder script' });
   }
 });
 
@@ -74,18 +107,3 @@ scriptRouter.delete('/:id', (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/script/reorder - Reorder script lines
-scriptRouter.put('/reorder', (req: Request, res: Response) => {
-  try {
-    const { ids } = req.body;
-    if (!Array.isArray(ids)) {
-      res.status(400).json({ error: 'ids must be an array' });
-      return;
-    }
-    const reordered = reorderScript(ids);
-    res.json(reordered);
-  } catch (error) {
-    console.error('Error reordering script:', error);
-    res.status(500).json({ error: 'Failed to reorder script' });
-  }
-});

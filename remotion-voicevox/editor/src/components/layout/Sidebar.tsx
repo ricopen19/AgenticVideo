@@ -2,17 +2,21 @@ interface SidebarProps {
   onPreview: () => void;
   onGenerateVoices: () => void;
   onBuildVideo: () => void;
+  onApplyVisuals: () => void;
   isGenerating?: boolean;
+  isApplyingVisuals?: boolean;
 }
 
 export function Sidebar({
   onPreview,
   onGenerateVoices,
   onBuildVideo,
+  onApplyVisuals,
   isGenerating = false,
+  isApplyingVisuals = false,
 }: SidebarProps) {
   return (
-    <aside className="w-64 bg-gray-100 border-r border-gray-200 p-4 flex flex-col gap-4">
+    <aside className="w-56 bg-white border-r border-gray-200 p-4 flex flex-col gap-4">
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Actions</h2>
         <div className="flex flex-col gap-2">
@@ -28,6 +32,13 @@ export function Sidebar({
             className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isGenerating ? 'Generating...' : 'Generate Voices'}
+          </button>
+          <button
+            onClick={onApplyVisuals}
+            disabled={isApplyingVisuals}
+            className="w-full px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isApplyingVisuals ? '処理中...' : 'ビジュアル確定'}
           </button>
           <button
             onClick={onBuildVideo}

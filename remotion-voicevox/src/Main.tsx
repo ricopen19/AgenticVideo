@@ -13,6 +13,24 @@ const { fontFamily } = loadFont();
 const getAdjustedFrames = (frames: number): number =>
   Math.ceil(frames / VIDEO_CONFIG.playbackRate);
 
+// lineTo スパンを考慮して現在行に表示すべき visuals を収集
+// 各行の visuals を走査し、lineId <= currentId <= (lineTo ?? lineId) を満たすものを返す
+// 始点行では元の animation を使い、継続行では animation: "none" に上書き
+const getEffectiveVisuals = (lines: typeof scriptData, currentId: number) => {
+  const result: (typeof scriptData)[0]["visuals"] = [];
+  for (const line of lines) {
+    if (!line.visuals) continue;
+    for (const v of line.visuals) {
+      const from = v.lineFrom ?? line.id;
+      const to = v.lineTo ?? line.id;
+      if (currentId >= from && currentId <= to) {
+        result.push(currentId === from ? v : { ...v, animation: "none" });
+      }
+    }
+  }
+  return result.length > 0 ? result : undefined;
+};
+
 export const Main: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -129,7 +147,7 @@ export const Main: React.FC = () => {
         lineId={currentLine?.id ?? null}
         frame={frame}
         fps={fps}
-        visuals={currentLine?.visuals}
+        visuals={currentLine ? getEffectiveVisuals(scriptData, currentLine.id) : undefined}
         lineText={currentLine?.text}
       />
 

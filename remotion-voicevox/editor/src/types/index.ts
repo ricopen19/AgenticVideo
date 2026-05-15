@@ -3,13 +3,22 @@ export type AnimationType = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomI
 
 // ビジュアルの型定義
 export interface VisualContent {
-  type: "image" | "video" | "text" | "none";
+  type: "image" | "video" | "text" | "svg" | "svg-file" | "none";
   src?: string;
   startFrom?: number;
   text?: string;
   fontSize?: number;
   color?: string;
   animation?: AnimationType;
+  lineFrom?: number;
+  lineTo?: number;
+}
+
+export interface TimelineSegment {
+  trackIdx: number;
+  role: 'start' | 'middle' | 'end' | 'single';
+  color: string;
+  visualType: string;
 }
 
 // 効果音の型定義

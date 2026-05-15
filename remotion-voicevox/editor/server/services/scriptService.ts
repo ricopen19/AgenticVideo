@@ -18,13 +18,15 @@ export interface ScriptLine {
   pauseAfter: number;
   emotion?: string;
   visuals?: Array<{
-    type: "image" | "video" | "text" | "none";
+    type: "image" | "video" | "text" | "svg" | "svg-file" | "none";
     src?: string;
     startFrom?: number;
     text?: string;
     fontSize?: number;
     color?: string;
     animation?: string;
+    lineFrom?: number;
+    lineTo?: number;
   }>;
   se?: {
     src: string;
