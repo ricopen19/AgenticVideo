@@ -15,41 +15,48 @@ const TRACK_COLORS: Record<string, string> = {
 };
 
 function buildTimeline(script: ScriptLine[]): { map: Map<number, TimelineSegment[]>; maxTracks: number } {
-  interface RawSpan { from: number; to: number; type: string; trackIdx: number }
+  // ID → 表示順インデックスのマップ（ID順ではなく表示順でスパンを判定するため）
+  const idToIdx = new Map(script.map((l, i) => [l.id, i]));
+
+  interface RawSpan { fromIdx: number; toIdx: number; type: string; trackIdx: number }
   const spans: RawSpan[] = [];
 
   for (const line of script) {
     if (!line.visuals) continue;
     for (const v of line.visuals) {
       if (v.type === 'none') continue;
-      const from = v.lineFrom ?? line.id;
-      const to = v.lineTo ?? line.id;
-      spans.push({ from, to, type: v.type, trackIdx: 0 });
+      const fromId = v.lineFrom ?? line.id;
+      const toId = v.lineTo ?? line.id;
+      const fromIdx = idToIdx.get(fromId) ?? idToIdx.get(line.id) ?? 0;
+      const toIdx = idToIdx.get(toId) ?? fromIdx;
+      spans.push({ fromIdx, toIdx, type: v.type, trackIdx: 0 });
     }
   }
 
-  spans.sort((a, b) => a.from - b.from || a.to - b.to);
+  spans.sort((a, b) => a.fromIdx - b.fromIdx || a.toIdx - b.toIdx);
 
   const trackEnds: number[] = [];
   for (const span of spans) {
-    let t = trackEnds.findIndex(end => end < span.from);
-    if (t === -1) { t = trackEnds.length; trackEnds.push(span.to); }
-    else trackEnds[t] = span.to;
+    let t = trackEnds.findIndex(endIdx => endIdx < span.fromIdx);
+    if (t === -1) { t = trackEnds.length; trackEnds.push(span.toIdx); }
+    else trackEnds[t] = span.toIdx;
     span.trackIdx = t;
   }
 
   const map = new Map<number, TimelineSegment[]>();
   for (const span of spans) {
     const color = TRACK_COLORS[span.type] ?? '#94a3b8';
-    if (span.from === span.to) {
-      if (!map.has(span.from)) map.set(span.from, []);
-      map.get(span.from)!.push({ trackIdx: span.trackIdx, role: 'single', color, visualType: span.type });
+    if (span.fromIdx === span.toIdx) {
+      const lineId = script[span.fromIdx].id;
+      if (!map.has(lineId)) map.set(lineId, []);
+      map.get(lineId)!.push({ trackIdx: span.trackIdx, role: 'single', color, visualType: span.type });
     } else {
-      for (let id = span.from; id <= span.to; id++) {
+      for (let idx = span.fromIdx; idx <= span.toIdx; idx++) {
+        const lineId = script[idx].id;
         const role: TimelineSegment['role'] =
-          id === span.from ? 'start' : id === span.to ? 'end' : 'middle';
-        if (!map.has(id)) map.set(id, []);
-        map.get(id)!.push({ trackIdx: span.trackIdx, role, color, visualType: span.type });
+          idx === span.fromIdx ? 'start' : idx === span.toIdx ? 'end' : 'middle';
+        if (!map.has(lineId)) map.set(lineId, []);
+        map.get(lineId)!.push({ trackIdx: span.trackIdx, role, color, visualType: span.type });
       }
     }
   }

@@ -13,18 +13,23 @@ const { fontFamily } = loadFont();
 const getAdjustedFrames = (frames: number): number =>
   Math.ceil(frames / VIDEO_CONFIG.playbackRate);
 
+// ID → 表示順インデックス（挿入等でIDが不連続になっても表示順で判定する）
+const idToDisplayIdx = new Map(scriptData.map((l, i) => [l.id, i]));
+
 // lineTo スパンを考慮して現在行に表示すべき visuals を収集
-// 各行の visuals を走査し、lineId <= currentId <= (lineTo ?? lineId) を満たすものを返す
-// 始点行では元の animation を使い、継続行では animation: "none" に上書き
+// ID比較ではなく表示順インデックスで判定することで、非連続IDに対応する
 const getEffectiveVisuals = (lines: typeof scriptData, currentId: number) => {
+  const currentIdx = idToDisplayIdx.get(currentId) ?? -1;
   const result: (typeof scriptData)[0]["visuals"] = [];
   for (const line of lines) {
     if (!line.visuals) continue;
     for (const v of line.visuals) {
-      const from = v.lineFrom ?? line.id;
-      const to = v.lineTo ?? line.id;
-      if (currentId >= from && currentId <= to) {
-        result.push(currentId === from ? v : { ...v, animation: "none" });
+      const fromId = v.lineFrom ?? line.id;
+      const toId = v.lineTo ?? line.id;
+      const fromIdx = idToDisplayIdx.get(fromId) ?? -1;
+      const toIdx = idToDisplayIdx.get(toId) ?? fromIdx;
+      if (fromIdx !== -1 && currentIdx >= fromIdx && currentIdx <= toIdx) {
+        result.push(currentIdx === fromIdx ? v : { ...v, animation: "none" });
       }
     }
   }
