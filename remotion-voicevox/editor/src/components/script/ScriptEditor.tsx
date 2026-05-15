@@ -34,7 +34,15 @@ export function ScriptEditor({ line, metadata, isNew, onSave, onClose }: ScriptE
   const updateVisual = (idx: number, field: keyof VisualContent, value: unknown) => {
     setFormData((prev) => {
       const visuals = [...(prev.visuals || [])];
-      visuals[idx] = { ...visuals[idx], [field]: value };
+      const updated = { ...visuals[idx], [field]: value };
+      // 片方だけ設定した場合、もう片方を現在の行 ID で補完
+      if (field === 'lineTo' && value != null && updated.lineFrom == null && prev.id > 0) {
+        updated.lineFrom = prev.id;
+      }
+      if (field === 'lineFrom' && value != null && updated.lineTo == null && prev.id > 0) {
+        updated.lineTo = prev.id;
+      }
+      visuals[idx] = updated;
       return { ...prev, visuals };
     });
   };

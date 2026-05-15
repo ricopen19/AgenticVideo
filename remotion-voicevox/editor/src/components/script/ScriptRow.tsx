@@ -1,7 +1,7 @@
-import { useState, useRef, Fragment } from 'react';
+import { useState, useRef, useEffect, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import Latex from 'react-latex-next';
-import type { ScriptLine, CharacterInfo, TimelineSegment } from '../../types';
+import type { ScriptLine, CharacterInfo, TimelineSegment, VisualContent, Metadata, AnimationType } from '../../types';
 
 const PIN_STYLES: Record<string, { badge: string; label: string; muted: string }> = {
   text:     { badge: 'bg-amber-100 text-amber-600', label: '',              muted: 'text-amber-400' },
@@ -19,7 +19,7 @@ const PIN_TYPE_LABELS: Record<string, string | undefined> = {
 
 const TRACK_WIDTH = 56;
 const TYPE_LABELS: Record<string, string> = {
-  'svg-file': 'SVG', image: 'IMG', video: 'VID', text: 'TXT',
+  'svg-file': 'SVG', svg: 'SVG', image: 'IMG', video: 'VID', text: 'TXT',
 };
 
 interface ScriptRowProps {
@@ -36,9 +36,10 @@ interface ScriptRowProps {
   onPushVisualsDown?: () => void;
   timelineSegments?: TimelineSegment[];
   timelineWidth: number;
+  metadata: Metadata;
 }
 
-export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelete, onMoveUp, onMoveDown, onInsertBelow, onQuickUpdate, onPushVisualsDown, timelineSegments, timelineWidth }: ScriptRowProps) {
+export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelete, onMoveUp, onMoveDown, onInsertBelow, onQuickUpdate, onPushVisualsDown, timelineSegments, timelineWidth, metadata }: ScriptRowProps) {
   const [editingField, setEditingField] = useState<'pauseAfter' | 'text' | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -46,6 +47,50 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
   const [hoveredPinIdx, setHoveredPinIdx] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pinRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [editingPinIdx, setEditingPinIdx] = useState<number | null>(null);
+  const [pinEdits, setPinEdits] = useState<VisualContent | null>(null);
+  const [pinEditPos, setPinEditPos] = useState<{ x: number; y: number } | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (editingPinIdx === null) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setEditingPinIdx(null);
+        setPinEdits(null);
+        setPinEditPos(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [editingPinIdx]);
+
+  const openPinEdit = (e: React.MouseEvent, idx: number) => {
+    e.stopPropagation();
+    const rect = pinRefs.current[idx]?.getBoundingClientRect();
+    if (!rect) return;
+    const popoverWidth = 320;
+    const x = Math.min(rect.left, window.innerWidth - popoverWidth - 16);
+    setEditingPinIdx(idx);
+    setPinEdits({ ...visuals[idx] });
+    setPinEditPos({ x, y: rect.bottom + 8 });
+    setPinPreview(null);
+  };
+
+  const applyPinEdit = () => {
+    if (editingPinIdx === null || !pinEdits) return;
+    const newVisuals = visuals.map((v, i) => i === editingPinIdx ? pinEdits : v);
+    onQuickUpdate('visuals', newVisuals);
+    setEditingPinIdx(null);
+    setPinEdits(null);
+    setPinEditPos(null);
+  };
+
+  const closePinEdit = () => {
+    setEditingPinIdx(null);
+    setPinEdits(null);
+    setPinEditPos(null);
+  };
 
   const character = characters.find((c) => c.id === line.character);
   const characterName = character?.name || line.character;
@@ -116,6 +161,9 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
     e.stopPropagation();
     setPinPreview(null);
     setHoveredPinIdx(null);
+    setEditingPinIdx(null);
+    setPinEdits(null);
+    setPinEditPos(null);
     const newVisuals = (line.visuals || []).filter((_, i) => i !== idx);
     onQuickUpdate('visuals', newVisuals.length > 0 ? newVisuals : undefined);
   };
@@ -196,10 +244,12 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
                     <span
                       key={i}
                       ref={el => { pinRefs.current[i] = el; }}
-                      className={`relative inline-flex items-center gap-0.5 text-xs px-1 py-0.5 rounded cursor-default ${pinStyle.badge}`}
-                      title={_v.lineTo ? `行 ${line.id} → ${_v.lineTo} まで表示` : undefined}
+                      className={`relative inline-flex items-center gap-0.5 text-xs px-1 py-0.5 rounded cursor-pointer ${pinStyle.badge}`}
+                      title="クリックで編集"
+                      onClick={(e) => openPinEdit(e, i)}
                       onMouseEnter={() => {
                         setHoveredPinIdx(i);
+                        if (editingPinIdx !== null) return;
                         const rect = pinRefs.current[i]?.getBoundingClientRect();
                         if (rect) setPinPreview({ idx: i, x: rect.left, y: rect.bottom + 6 });
                       }}
@@ -213,7 +263,7 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
                       {visuals.length > 1 ? <sup>{i + 1}</sup> : null}
                       {(_v.lineFrom != null || _v.lineTo != null) ? (
                         <span className={`ml-0.5 text-xs ${pinStyle.muted}`}>
-                          {_v.lineFrom != null ? `${_v.lineFrom}` : ''}→{_v.lineTo != null ? `${_v.lineTo}` : ''}
+                          {_v.lineFrom != null ? `${_v.lineFrom}` : `${line.id}`}→{_v.lineTo != null ? `${_v.lineTo}` : `${line.id}`}
                         </span>
                       ) : null}
                       <button
@@ -338,6 +388,143 @@ export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelet
           </div>
         </div>
       </td>
+      {editingPinIdx !== null && pinEdits !== null && pinEditPos !== null && createPortal(
+        <div
+          ref={popoverRef}
+          style={{ position: 'fixed', left: pinEditPos.x, top: pinEditPos.y, zIndex: 9999 }}
+          className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 text-sm"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-semibold text-amber-600 text-sm">📌 ピン {editingPinIdx + 1}</span>
+            <button onClick={closePinEdit} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Type</label>
+              <select
+                value={pinEdits.type}
+                onChange={e => setPinEdits({ ...pinEdits, type: e.target.value as VisualContent['type'] })}
+                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+              >
+                {metadata.visualTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Animation</label>
+              <select
+                value={pinEdits.animation || 'fadeIn'}
+                onChange={e => setPinEdits({ ...pinEdits, animation: e.target.value as AnimationType })}
+                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+              >
+                {metadata.animations.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">開始行 ID</label>
+              <input
+                type="number"
+                value={pinEdits.lineFrom ?? ''}
+                onChange={e => setPinEdits({ ...pinEdits, lineFrom: e.target.value === '' ? undefined : parseInt(e.target.value, 10) })}
+                placeholder={String(line.id)}
+                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">終了行 ID</label>
+              <input
+                type="number"
+                value={pinEdits.lineTo ?? ''}
+                onChange={e => setPinEdits({ ...pinEdits, lineTo: e.target.value === '' ? undefined : parseInt(e.target.value, 10) })}
+                placeholder={String(line.id)}
+                className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+              />
+            </div>
+          </div>
+
+          {(pinEdits.type === 'image' || pinEdits.type === 'svg-file' || pinEdits.type === 'video') && (
+            <div className="mb-3 space-y-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Source</label>
+                <input
+                  type="text"
+                  value={pinEdits.src || ''}
+                  onChange={e => setPinEdits({ ...pinEdits, src: e.target.value })}
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-xs font-mono"
+                />
+              </div>
+              {pinEdits.type === 'video' && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Start From (frames)</label>
+                  <input
+                    type="number"
+                    value={pinEdits.startFrom ?? 0}
+                    onChange={e => setPinEdits({ ...pinEdits, startFrom: parseInt(e.target.value, 10) || 0 })}
+                    min={0}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {pinEdits.type === 'text' && (
+            <div className="mb-3 space-y-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">数式テキスト</label>
+                <textarea
+                  value={pinEdits.text || ''}
+                  onChange={e => setPinEdits({ ...pinEdits, text: e.target.value })}
+                  rows={2}
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-xs font-mono"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Font Size</label>
+                  <input
+                    type="number"
+                    value={pinEdits.fontSize || 64}
+                    onChange={e => setPinEdits({ ...pinEdits, fontSize: parseInt(e.target.value, 10) })}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Color</label>
+                  <input
+                    type="color"
+                    value={pinEdits.color || '#ffffff'}
+                    onChange={e => setPinEdits({ ...pinEdits, color: e.target.value })}
+                    className="w-full h-7 border border-gray-300 rounded"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+            <button
+              onClick={(e) => { if (editingPinIdx !== null) removeVisual(e, editingPinIdx); }}
+              className="text-xs text-red-400 hover:text-red-600"
+            >
+              削除
+            </button>
+            <div className="flex gap-2">
+              <button onClick={closePinEdit} className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700">
+                キャンセル
+              </button>
+              <button onClick={applyPinEdit} className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">
+                適用
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </tr>
   );
 }

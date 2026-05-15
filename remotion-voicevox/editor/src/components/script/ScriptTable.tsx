@@ -9,6 +9,7 @@ const TRACK_WIDTH = 56;
 const TRACK_COLORS: Record<string, string> = {
   text: '#f59e0b',
   'svg-file': '#38bdf8',
+  svg: '#38bdf8',
   image: '#38bdf8',
   video: '#a78bfa',
 };
@@ -22,7 +23,7 @@ function buildTimeline(script: ScriptLine[]): { map: Map<number, TimelineSegment
     for (const v of line.visuals) {
       if (v.type === 'none') continue;
       const from = v.lineFrom ?? line.id;
-      const to = v.lineTo ?? from;
+      const to = v.lineTo ?? line.id;
       spans.push({ from, to, type: v.type, trackIdx: 0 });
     }
   }
@@ -228,6 +229,7 @@ export function ScriptTable({
                 }
                 timelineSegments={timelineMap.get(line.id)}
                 timelineWidth={timelineWidth}
+                metadata={metadata}
               />
             ))}
           </tbody>
