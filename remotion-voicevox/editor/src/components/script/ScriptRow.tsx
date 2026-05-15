@@ -1,27 +1,28 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Latex from 'react-latex-next';
-import type { ScriptLine, CharacterInfo, VisualContent } from '../../types';
+import type { ScriptLine, CharacterInfo } from '../../types';
 
 interface ScriptRowProps {
   line: ScriptLine;
   index: number;
   totalLines: number;
   characters: CharacterInfo[];
-  prevVisuals?: VisualContent[];
   onEdit: () => void;
   onDelete: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onInsertBelow: () => void;
   onQuickUpdate: (field: keyof ScriptLine, value: unknown) => void;
+  onPushVisualsDown?: () => void;
 }
 
-export function ScriptRow({ line, index, totalLines, characters, prevVisuals, onEdit, onDelete, onMoveUp, onMoveDown, onInsertBelow, onQuickUpdate }: ScriptRowProps) {
+export function ScriptRow({ line, index, totalLines, characters, onEdit, onDelete, onMoveUp, onMoveDown, onInsertBelow, onQuickUpdate, onPushVisualsDown }: ScriptRowProps) {
   const [editingField, setEditingField] = useState<'pauseAfter' | 'text' | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [pinPreview, setPinPreview] = useState<{ idx: number; x: number; y: number } | null>(null);
+  const [hoveredPinIdx, setHoveredPinIdx] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pinRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
@@ -93,21 +94,12 @@ export function ScriptRow({ line, index, totalLines, characters, prevVisuals, on
   const removeVisual = (e: React.MouseEvent, idx: number) => {
     e.stopPropagation();
     setPinPreview(null);
+    setHoveredPinIdx(null);
     const newVisuals = (line.visuals || []).filter((_, i) => i !== idx);
     onQuickUpdate('visuals', newVisuals.length > 0 ? newVisuals : undefined);
   };
 
-  const inheritVisuals = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!prevVisuals || prevVisuals.length === 0) return;
-    // 引き継いだビジュアルは animation: none（既に表示済みのため再アニメーション不要）
-    const inherited = prevVisuals.map(v => ({ ...v, animation: 'none' as const }));
-    const current = line.visuals || [];
-    onQuickUpdate('visuals', [...inherited, ...current]);
-  };
-
   const visuals = line.visuals || [];
-  const hasInheritSource = prevVisuals && prevVisuals.length > 0;
 
   return (
     <tr className="group hover:bg-gray-50 cursor-pointer" onClick={onEdit}>
@@ -155,30 +147,36 @@ export function ScriptRow({ line, index, totalLines, characters, prevVisuals, on
               )}
             </div>
             {/* ピンバッジ（複数対応） */}
-            <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
-              {visuals.filter(v => v.type !== 'none').map((v, i) => (
-                <span
-                  key={i}
-                  ref={el => { pinRefs.current[i] = el; }}
-                  className="relative inline-flex items-center gap-0.5 text-xs px-1 py-0.5 bg-amber-100 text-amber-600 rounded cursor-default group/pin"
-                  onMouseEnter={() => {
-                    const rect = pinRefs.current[i]?.getBoundingClientRect();
-                    if (rect) setPinPreview({ idx: i, x: rect.left, y: rect.bottom + 6 });
-                  }}
-                  onMouseLeave={() => setPinPreview(null)}
-                  title={`ピン${visuals.length > 1 ? i + 1 : ''}: ${v.type}`}
-                >
-                  📌{visuals.length > 1 ? <sup>{i + 1}</sup> : null}
-                  <button
-                    onClick={(e) => removeVisual(e, i)}
-                    className="opacity-0 group-hover/pin:opacity-100 transition-opacity ml-0.5 text-amber-400 hover:text-red-500 leading-none"
-                    title="ピンを削除"
+            {visuals.length > 0 && (
+              <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                {visuals.filter(v => v.type !== 'none').map((_v, i) => (
+                  <span
+                    key={i}
+                    ref={el => { pinRefs.current[i] = el; }}
+                    className="relative inline-flex items-center gap-0.5 text-xs px-1 py-0.5 bg-amber-100 text-amber-600 rounded cursor-default"
+                    onMouseEnter={() => {
+                      setHoveredPinIdx(i);
+                      const rect = pinRefs.current[i]?.getBoundingClientRect();
+                      if (rect) setPinPreview({ idx: i, x: rect.left, y: rect.bottom + 6 });
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredPinIdx(null);
+                      setPinPreview(null);
+                    }}
                   >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
+                    📌{visuals.length > 1 ? <sup>{i + 1}</sup> : null}
+                    <button
+                      onClick={(e) => removeVisual(e, i)}
+                      style={{ opacity: hoveredPinIdx === i ? 1 : 0, transition: 'opacity 0.1s' }}
+                      className="ml-0.5 text-amber-400 hover:text-red-500 leading-none text-xs"
+                      title="ピンを削除"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             {/* KaTeX ツールチップ */}
             {pinPreview !== null && visuals[pinPreview.idx]?.type === 'text' && visuals[pinPreview.idx]?.text && createPortal(
               <div
@@ -221,7 +219,7 @@ export function ScriptRow({ line, index, totalLines, characters, prevVisuals, on
           >
             ✕
           </button>
-          {/* ホバー時に表示: ↑ ↓ ＋ 引き継ぎ */}
+          {/* ホバー時に表示: ↑ ↓ ＋ 📌↓ */}
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={onMoveUp}
@@ -246,13 +244,13 @@ export function ScriptRow({ line, index, totalLines, characters, prevVisuals, on
             >
               ＋
             </button>
-            {hasInheritSource && (
+            {onPushVisualsDown && (
               <button
-                onClick={inheritVisuals}
+                onClick={(e) => { e.stopPropagation(); onPushVisualsDown(); }}
                 className="px-1.5 py-0.5 text-xs text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded"
-                title="前の行のピンを引き継ぐ"
+                title="ピンを下の行に追加コピー"
               >
-                📌↑
+                📌↓
               </button>
             )}
           </div>

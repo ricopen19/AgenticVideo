@@ -105,6 +105,20 @@ export function ScriptTable({
     setInsertAfterId(null);
   };
 
+  const handlePushVisualsDown = async (lineIndex: number) => {
+    const currentLine = script[lineIndex];
+    const nextLine = script[lineIndex + 1];
+    if (!nextLine || !currentLine.visuals?.length) return;
+    const pushed = currentLine.visuals.map(v => ({ ...v, animation: 'none' as const }));
+    const existing = nextLine.visuals || [];
+    // 既存のピンの前に挿入（重複除去）
+    const merged = [
+      ...pushed,
+      ...existing.filter(ev => !pushed.some(pv => pv.text === ev.text && pv.src === ev.src)),
+    ];
+    await onUpdate(nextLine.id, { visuals: merged });
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -145,13 +159,17 @@ export function ScriptTable({
                 index={index}
                 totalLines={script.length}
                 characters={metadata.characters}
-                prevVisuals={index > 0 ? script[index - 1].visuals : undefined}
                 onEdit={() => handleEdit(line)}
                 onDelete={() => handleDelete(line.id)}
                 onMoveUp={() => onMoveUp(line.id)}
                 onMoveDown={() => onMoveDown(line.id)}
                 onInsertBelow={() => handleInsertBelow(line)}
                 onQuickUpdate={(field, value) => onUpdate(line.id, { [field]: value })}
+                onPushVisualsDown={
+                  line.visuals?.length && index < script.length - 1
+                    ? () => handlePushVisualsDown(index)
+                    : undefined
+                }
               />
             ))}
           </tbody>
