@@ -12,7 +12,7 @@
     "sync-script": "npx ts-node scripts/sync-script.ts",
     "preview-map": "npx ts-node scripts/preview-map.ts && open out/preview-map.html",
     "init": "npx ts-node scripts/init-project.ts",
-    "editor": "concurrently --kill-others \"npm run editor:server\" \"npm run editor:client\"",
+    "editor": "pkill -9 esbuild 2>/dev/null || true && concurrently --kill-others \"npm run editor:server\" \"npm run editor:client\"",
     "editor:client": "cd editor && npm run dev",
     "editor:server": "cd editor && npm run server",
     "editor:install": "cd editor && npm install",
